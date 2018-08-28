@@ -332,18 +332,24 @@ void handle_instruction()
 		{
 			
 			//Parse func from instruction
-			uint32_t func = ins & 0x0000004F;
-			printf( "\nOpcode: %08x \n", opcode );
+			uint32_t func = ins & 0x0000003F;
+			printf( "\nFUNC: %08x \n", func );
 			switch( func ) 
 			{
-				case 0x00000000: 
-				break; 
+				case 0x00000010: 
+					puts( "Add Function" );
+					break; 
+				case 0x0000000C: 
+					puts( "Terminate" );
+					RUN_FLAG = FALSE;
+					break; 
 			}		
 			break;
 		}
 
 	}
 
+	NEXT_STATE.PC = CURRENT_STATE.PC + 0x4;
 
 }
 
