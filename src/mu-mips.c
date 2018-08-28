@@ -321,23 +321,26 @@ void handle_instruction()
 	printf( "\nInstruction: %08x \n", ins );
 
 	//Parse opcode from instruction
-	uint32_t opcode = ins & 0xFC000000;
-	printf( "\nOpcode: %08x \n", opcode );
+	*CURRENT_STATE.REGS = ins & 0xFC000000;
+	//Parse func from instruction
+	*CURRENT_STATE.REGS = *CURRENT_STATE.REGS | (ins & 0x0000003F);	
+	//uint32_t func = ins & 0x0000003F;
+	
+	//printf( "\nOpcode: %08x \n", opcode );
+	printf( "\n %08x \n", *CURRENT_STATE.REGS );
 
 	//Handle each case for instructions
-	switch( opcode )
+	/*switch( opcode )
 	{
 	
 		case 0x00000000: 
 		{
 			
-			//Parse func from instruction
-			uint32_t func = ins & 0x0000003F;
-			printf( "\nFUNC: %08x \n", func );
 			switch( func ) 
 			{
-				case 0x00000010: 
+				case 0x00000020: 
 					puts( "Add Function" );
+					//NextState.REGS[rd] = 
 					break; 
 				case 0x0000000C: 
 					puts( "Terminate" );
@@ -347,9 +350,10 @@ void handle_instruction()
 			break;
 		}
 
-	}
+	}*/
 
 	NEXT_STATE.PC = CURRENT_STATE.PC + 0x4;
+	RUN_FLAG = FALSE;
 
 }
 
