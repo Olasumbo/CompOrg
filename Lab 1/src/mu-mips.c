@@ -371,6 +371,26 @@ void handle_instruction()
 					puts( "Terminate" );
 					RUN_FLAG = FALSE;
 					break; 
+				case 0x00000013:
+					//MTLO
+					puts( "Move to LO" );
+					NEXT_STATE.LO = CURRENT_STATE.REGS[rs];
+					break;
+				case 0x0000011:
+					//MTHI
+					puts( "Move to HI" );
+					NEXT_STATE.HI = CURRENT_STATE.REGS[rs];
+					break;
+				case 0x0000012:
+					//MFLO
+					puts( "Move from LO" );
+					CURRENT_STATE.REGS[rd] = NEXT_STATE.LO;
+					break;
+				case 0x0000010:
+					//MFHI
+					puts( "Move from HI" );
+					CURRENT_STATE.REGS[rd] = NEXT_STATE.HI;
+					break;
 			}		
 			break;
       
@@ -411,6 +431,17 @@ void handle_instruction()
 				uint32_t sum = ( rt + im ) << 16;
 				*NEXT_STATE.REGS = *CURRENT_STATE.REGS | sum;
 				break;
+			}
+			case 0xA000000:
+			{
+				uint32_t vAddr = im;
+				if( ( (0x8000 & im) >> 15 ) )
+				{
+					vAddr += 0xFFFF0000;
+				}
+				vAddr += CURRENT_STATE.REGS[rs];
+
+				mem_write_32( vAddr, CURRENT_STATE.REGS[rt] );
 			}
 		}
 
