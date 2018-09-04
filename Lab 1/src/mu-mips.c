@@ -327,13 +327,10 @@ void handle_instruction()
 	printf( "\nInstruction: %08x \n", ins );
 
 	//Parse opcode from instruction
-	*CURRENT_STATE.REGS = ins;
+	//*CURRENT_STATE.REGS = ins;
                     
     	//opcode MASK: 1111 1100 0000 0000 4x0000 = FC0000000
         uint32_t oc = ( 0xFC000000 & ins  );
-
-	//Parse func from instruction
-	//*CURRENT_STATE.REGS = *CURRENT_STATE.REGS | (ins & 0x0000003F);
 	
 	printf( "\nOpcode: %08x \n", oc );
 	//printf( "\n%08x \n", *CURRENT_STATE.REGS );
@@ -341,7 +338,7 @@ void handle_instruction()
 	//Handle each case for instructions
 	switch( oc )
 	{
-	
+		//R-Type
 		case 0x00000000: 
 		{                                
 	    	//rs MASK: 0000 0011 1110 0000 4x0000 = 03E00000
@@ -432,6 +429,7 @@ void handle_instruction()
 				*NEXT_STATE.REGS = *CURRENT_STATE.REGS | sum;
 				break;
 			}
+<<<<<<< HEAD
 			case 0xA000000:
 			{
 				uint32_t vAddr = im;
@@ -442,6 +440,18 @@ void handle_instruction()
 				vAddr += CURRENT_STATE.REGS[rs];
 
 				mem_write_32( vAddr, CURRENT_STATE.REGS[rt] );
+=======
+			case 0x83:
+			{
+				//Load Word
+				if(0x80000 & im)
+				{
+					im += 0xFFFF000;
+				}
+				uint32_t eAddress = *CURRENT_STATE.REGS[im]+ *CURRENT_STATE.REGS[rs];
+				*NEXT_STATE.REGS[rt] = 
+				
+>>>>>>> 3b52f158b96997db952eee751d9617e31a3a600c
 			}
 		}
 
