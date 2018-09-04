@@ -317,47 +317,55 @@ void handle_instruction()
 
 	//Get the current instruction
 	uint32_t ins = mem_read_32( CURRENT_STATE.PC );
+
+	//0000 0000 0010 0001 0000 0000 0010 0000
+	//0x00210020
+	//ins = 0x20010001;
+
 	//puts( ins );
+	puts( "//*************************//" );
 	printf( "\nInstruction: %08x \n", ins );
 
 	//Parse opcode from instruction
-	*CURRENT_STATE.REGS = ins & 0xFC000000;
+	*CURRENT_STATE.REGS = ins;
+                    
+    	//opcode MASK: 1111 1100 0000 0000 4x0000 = FC0000000
+        uint32_t oc = ( 0xFC000000 & ins  );
+
 	//Parse func from instruction
-	*CURRENT_STATE.REGS = *CURRENT_STATE.REGS | (ins & 0x0000003F);
+	//*CURRENT_STATE.REGS = *CURRENT_STATE.REGS | (ins & 0x0000003F);
 	
-	printf( "\nOpcode: %08x \n", *CURRENT_STATE.REGS );
+	printf( "\nOpcode: %08x \n", oc );
 	//printf( "\n%08x \n", *CURRENT_STATE.REGS );
 
 	//Handle each case for instructions
-	switch( *CURRENT_STATE.REGS )
+	switch( oc )
 	{
 	
 		case 0x00000000: 
-		{                                                    
-    	//opcode MASK: 1111 1100 0000 0000 4x0000 = FC0000000
-      uint32_t oc = ( 0xFC000000 & ins  ) >> 26;
-    	//rs MASK: 0000 0011 1110 0000 4x0000 = 03E00000
-      uint32_t rs = ( 0x03E00000 & ins  ) >> 21;
-      //rt MASK: 0000 0000 0001 1111 4x0000 = 001F0000;
-      uint32_t rt = ( 0x001F0000 & ins  ) >> 16;
-      //rd MASK: 4x0000 1111 1000 0000 0000 = 0000F800;
-      uint32_t rd = ( 0x0000F800 & ins  ) >> 11;
-      //func MASK: 6x0000 0001 1111 = 0000001F
-      uint32_t func = ( 0x0000001F & ins );
-     
-      printf( "\nR-Type Instruction:" 
-              "\n-> OC: %x" 
-              "\n-> rs: %x" 
-              "\n-> rt: %x" 
-              "\n-> rd: %x" 
-              "\n-> func: %x\n",  
-              oc, rs, rt, rd, func );
+		{                                
+	    	//rs MASK: 0000 0011 1110 0000 4x0000 = 03E00000
+	      uint32_t rs = ( 0x03E00000 & ins  ) >> 21;
+	      //rt MASK: 0000 0000 0001 1111 4x0000 = 001F0000;
+	      uint32_t rt = ( 0x001F0000 & ins  ) >> 16;
+	      //rd MASK: 4x0000 1111 1000 0000 0000 = 0000F800;
+	      uint32_t rd = ( 0x0000F800 & ins  ) >> 11;
+	      //func MASK: 6x0000 0001 1111 = 0000001F
+	      uint32_t func = ( 0x0000003F & ins );
+	     
+	      printf( "\nR-Type Instruction:" 
+		      "\n-> OC: %x" 
+		      "\n-> rs: %x" 
+		      "\n-> rt: %x" 
+		      "\n-> rd: %x" 
+		      "\n-> func: %x\n",  
+		      oc, rs, rt, rd, func );
 			
 			switch( func ) 
 			{
 				case 0x00000020: 
 					puts( "Add Function" );
-					//NextState.REGS[rd] = 
+					NEXT_STATE.REGS[rd] = CURRENT_STATE.REGS[rs] + CURRENT_STATE.REGS[rt];
 					break; 
 				case 0x0000000C: 
 					puts( "Terminate" );
@@ -367,41 +375,51 @@ void handle_instruction()
 			break;
       
 		}
-    case 0x08000000:
-    {
-      //J-Jump Instruction
-      break;
-    }
-    case 0x0C000000:
-    {
-      //JAL-Jump and Link Instruction
-      break;
-    }
-    default:
-    {
-    
-    	//opcode MASK: 1111 1100 0000 0000 4x0000 = FC0000000
-      uint32_t oc = ( 0xFC000000 & ins  ) >> 26;
-    	//rs MASK: 0000 0011 1110 0000 4x0000 = 03E00000
-      uint32_t rs = ( 0x03E00000 & ins  ) >> 21;
-      //rt MASK: 0000 0000 0001 1111 4x0000 = 001F0000;
-      uint32_t rt = ( 0x001F0000 & ins  ) >> 16;
-      //Immediate MASK: 4x0000 4x1111 = 0000FFFF;
-      uint32_t im = ( 0x0000FFFF & ins  ) >> 11;
-          
-      //I-Type Instruction
-      printf( "\nI-Type Instruction:" 
-              "\n-> OC: %x" 
-              "\n-> rs: %x" 
-              "\n-> rt: %x" 
-              "\n-> Immediate: %x\n",  
-              oc, rs, rt, im );
-    }
+	    case 0x08000000:
+	    {
+	      //J-Jump Instruction
+	      break;
+	    }
+	    case 0x0C000000:
+	    {
+	      //JAL-Jump and Link Instruction
+	      break;
+	    }
+	    default:
+	    {
+	    	//rs MASK: 0000 0011 1110 0000 4x0000 = 03E00000
+	      uint32_t rs = ( 0x03E00000 & ins  ) >> 21;
+	      //rt MASK: 0000 0000 0001 1111 4x0000 = 001F0000;
+	      uint32_t rt = ( 0x001F0000 & ins  ) >> 16;
+	      //Immediate MASK: 4x0000 4x1111 = 0000FFFF;
+	      uint32_t im = ( 0x0000FFFF & ins  );
+		  
+	      //I-Type Instruction
+	      printf( "\nI-Type Instruction:" 
+		      "\n-> OC: %x" 
+		      "\n-> rs: %x" 
+		      "\n-> rt: %x" 
+		      "\n-> Immediate: %x\n",  
+		      oc, rs, rt, im );
+
+		switch( oc )
+		{
+			case 0x20000000:
+			{
+				//ADDI
+				puts( "ADDI" );
+				uint32_t sum = ( rt + im ) << 16;
+				*NEXT_STATE.REGS = *CURRENT_STATE.REGS | sum;
+				break;
+			}
+		}
+
+	    }
 
 	}
 
 	NEXT_STATE.PC = CURRENT_STATE.PC + 0x4;
-	RUN_FLAG = FALSE;
+	//RUN_FLAG = FALSE;
 
 }
 
