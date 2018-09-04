@@ -323,18 +323,35 @@ void handle_instruction()
 	//Parse opcode from instruction
 	*CURRENT_STATE.REGS = ins & 0xFC000000;
 	//Parse func from instruction
-	*CURRENT_STATE.REGS = *CURRENT_STATE.REGS | (ins & 0x0000003F);	
-	//uint32_t func = ins & 0x0000003F;
+	*CURRENT_STATE.REGS = *CURRENT_STATE.REGS | (ins & 0x0000003F);
 	
-	//printf( "\nOpcode: %08x \n", opcode );
-	printf( "\n %08x \n", *CURRENT_STATE.REGS );
+	printf( "\nOpcode: %08x \n", *CURRENT_STATE.REGS );
+	//printf( "\n%08x \n", *CURRENT_STATE.REGS );
 
 	//Handle each case for instructions
-	/*switch( opcode )
+	switch( *CURRENT_STATE.REGS )
 	{
 	
 		case 0x00000000: 
-		{
+		{                                                    
+    	//opcode MASK: 1111 1100 0000 0000 4x0000 = FC0000000
+      uint32_t oc = ( 0xFC000000 & ins  ) >> 26;
+    	//rs MASK: 0000 0011 1110 0000 4x0000 = 03E00000
+      uint32_t rs = ( 0x03E00000 & ins  ) >> 21;
+      //rt MASK: 0000 0000 0001 1111 4x0000 = 001F0000;
+      uint32_t rt = ( 0x001F0000 & ins  ) >> 16;
+      //rd MASK: 4x0000 1111 1000 0000 0000 = 0000F800;
+      uint32_t rd = ( 0x0000F800 & ins  ) >> 11;
+      //func MASK: 6x0000 0001 1111 = 0000001F
+      uint32_t func = ( 0x0000001F & ins );
+     
+      printf( "\nR-Type Instruction:" 
+              "\n-> OC: %x" 
+              "\n-> rs: %x" 
+              "\n-> rt: %x" 
+              "\n-> rd: %x" 
+              "\n-> func: %x\n",  
+              oc, rs, rt, rd, func );
 			
 			switch( func ) 
 			{
@@ -348,9 +365,40 @@ void handle_instruction()
 					break; 
 			}		
 			break;
+      
 		}
+    case 0x08000000:
+    {
+      //J-Jump Instruction
+      break;
+    }
+    case 0x0C000000:
+    {
+      //JAL-Jump and Link Instruction
+      break;
+    }
+    default:
+    {
+    
+    	//opcode MASK: 1111 1100 0000 0000 4x0000 = FC0000000
+      uint32_t oc = ( 0xFC000000 & ins  ) >> 26;
+    	//rs MASK: 0000 0011 1110 0000 4x0000 = 03E00000
+      uint32_t rs = ( 0x03E00000 & ins  ) >> 21;
+      //rt MASK: 0000 0000 0001 1111 4x0000 = 001F0000;
+      uint32_t rt = ( 0x001F0000 & ins  ) >> 16;
+      //Immediate MASK: 4x0000 4x1111 = 0000FFFF;
+      uint32_t im = ( 0x0000FFFF & ins  ) >> 11;
+          
+      //I-Type Instruction
+      printf( "\nI-Type Instruction:" 
+              "\n-> OC: %x" 
+              "\n-> rs: %x" 
+              "\n-> rt: %x" 
+              "\n-> Immediate: %x\n",  
+              oc, rs, rt, im );
+    }
 
-	}*/
+	}
 
 	NEXT_STATE.PC = CURRENT_STATE.PC + 0x4;
 	RUN_FLAG = FALSE;
