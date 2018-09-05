@@ -7,6 +7,21 @@
 #include "mu-mips.h"
 
 /***************************************************************/
+/* Extend Sign Function from 16-bits to 32-bits */
+/***************************************************************/
+uint32_t extend_sign( uint32_t im )
+{
+    uint32_t data = ( im & 0x0000FFFF );
+    uint32_t mask = 0x00008000;
+    if ( mask & data ) 
+    {
+        data = data | 0xFFFF0000;
+    }
+    
+    return data;
+}      
+
+/***************************************************************/
 /* Print out a list of commands available                                                                  */
 /***************************************************************/
 void help() {        
@@ -429,29 +444,32 @@ void handle_instruction()
 				*NEXT_STATE.REGS = *CURRENT_STATE.REGS | sum;
 				break;
 			}
-<<<<<<< HEAD
 			case 0xA000000:
 			{
-				uint32_t vAddr = im;
-				if( ( (0x8000 & im) >> 15 ) )
-				{
-					vAddr += 0xFFFF0000;
-				}
-				vAddr += CURRENT_STATE.REGS[rs];
-
-				mem_write_32( vAddr, CURRENT_STATE.REGS[rt] );
-=======
+        //SB - Store Byte
+        
+        //Extend sign of immediate register to get memory offset
+				uint32_t offset = extend_sign( im );
+        //Create a effective memory address
+				uint32_t eAddr = offset + CURRENT_STATE.REGS[rs];
+        
+        //Store a byte sized data in register rt to the virtual address. Shift right by 24 to only store one byte
+				mem_write_32( eAddr, NEXT_STATE.REGS[rt] >> 24 );
+      }
 			case 0x83:
 			{
-				//Load Word
-				if(0x80000 & im)
-				{
-					im += 0xFFFF000;
-				}
-				uint32_t eAddress = *CURRENT_STATE.REGS[im]+ *CURRENT_STATE.REGS[rs];
-				*NEXT_STATE.REGS[rt] = 
-				
->>>>>>> 3b52f158b96997db952eee751d9617e31a3a600c
+				//LW - Load Word
+        
+        //Extend sign of immediate register to get memory offset
+				uint32_t offset = extend_sign( im );
+        //Create a effective memory address
+				uint32_t eAddr = offset + CURRENT_STATE.REGS[rs];
+        
+        //Load data from memory into rt register
+        NEXT_STATE.REGS[rt] = mem_read_32( eAddr );
+        
+				//uint32_t eAddress = *CURRENT_STATE.REGS[im]+ *CURRENT_STATE.REGS[rs];
+				//*NEXT_STATE.REGS[rt] = 
 			}
 		}
 
