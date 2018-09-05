@@ -6,19 +6,21 @@
 
 #include "mu-mips.h"
 
+uint32_t prevInstruction;
+
 /***************************************************************/
 /* Extend Sign Function from 16-bits to 32-bits */
 /***************************************************************/
 uint32_t extend_sign( uint32_t im )
 {
-    uint32_t data = ( im & 0x0000FFFF );
-    uint32_t mask = 0x00008000;
-    if ( mask & data ) 
-    {
-        data = data | 0xFFFF0000;
-    }
-    
-    return data;
+	uint32_t data = ( im & 0x0000FFFF );
+	uint32_t mask = 0x00008000;
+	if ( mask & data ) 
+	{
+		data = data | 0xFFFF0000;
+	}
+
+	return data;
 }      
 
 /***************************************************************/
@@ -51,9 +53,9 @@ uint32_t mem_read_32(uint32_t address)
 		if ( (address >= MEM_REGIONS[i].begin) &&  ( address <= MEM_REGIONS[i].end) ) {
 			uint32_t offset = address - MEM_REGIONS[i].begin;
 			return (MEM_REGIONS[i].mem[offset+3] << 24) |
-					(MEM_REGIONS[i].mem[offset+2] << 16) |
-					(MEM_REGIONS[i].mem[offset+1] <<  8) |
-					(MEM_REGIONS[i].mem[offset+0] <<  0);
+				(MEM_REGIONS[i].mem[offset+2] << 16) |
+				(MEM_REGIONS[i].mem[offset+1] <<  8) |
+				(MEM_REGIONS[i].mem[offset+0] <<  0);
 		}
 	}
 	return 0;
@@ -91,7 +93,7 @@ void cycle() {
 /* Simulate MIPS for n cycles                                                                                       */
 /***************************************************************/
 void run(int num_cycles) {                                      
-	
+
 	if (RUN_FLAG == FALSE) {
 		printf("Simulation Stopped\n\n");
 		return;
@@ -258,15 +260,15 @@ void reset() {
 	}
 	CURRENT_STATE.HI = 0;
 	CURRENT_STATE.LO = 0;
-	
+
 	for (i = 0; i < NUM_MEM_REGION; i++) {
 		uint32_t region_size = MEM_REGIONS[i].end - MEM_REGIONS[i].begin + 1;
 		memset(MEM_REGIONS[i].mem, 0, region_size);
 	}
-	
+
 	/*load program*/
 	load_program();
-	
+
 	/*reset PC*/
 	INSTRUCTION_COUNT = 0;
 	CURRENT_STATE.PC =  MEM_TEXT_BEGIN;
@@ -325,10 +327,10 @@ void handle_instruction()
 
 	/*
 
-		1. READ instruction from mem_read( CurrentState.PC );
-		2. Using the OPCODE, do a switch the handel each of the instructions.
+	   1. READ instruction from mem_read( CurrentState.PC );
+	   2. Using the OPCODE, do a switch the handel each of the instructions.
 
-	*/
+	 */
 
 	//Get the current instruction
 	uint32_t ins = mem_read_32( CURRENT_STATE.PC );
@@ -341,143 +343,176 @@ void handle_instruction()
 	puts( "//*************************//" );
 	printf( "\nInstruction: %08x \n", ins );
 
-	//Parse opcode from instruction
-	//*CURRENT_STATE.REGS = ins;
-                    
-    	//opcode MASK: 1111 1100 0000 0000 4x0000 = FC0000000
-        uint32_t oc = ( 0xFC000000 & ins  );
-	
+	//opcode MASK: 1111 1100 0000 0000 4x0000 = FC0000000
+	uint32_t oc = ( 0xFC000000 & ins  );
+
 	printf( "\nOpcode: %08x \n", oc );
-	//printf( "\n%08x \n", *CURRENT_STATE.REGS );
 
 	//Handle each case for instructions
 	switch( oc )
 	{
 		//R-Type
 		case 0x00000000: 
-		{                                
-	    	//rs MASK: 0000 0011 1110 0000 4x0000 = 03E00000
-	      uint32_t rs = ( 0x03E00000 & ins  ) >> 21;
-	      //rt MASK: 0000 0000 0001 1111 4x0000 = 001F0000;
-	      uint32_t rt = ( 0x001F0000 & ins  ) >> 16;
-	      //rd MASK: 4x0000 1111 1000 0000 0000 = 0000F800;
-	      uint32_t rd = ( 0x0000F800 & ins  ) >> 11;
-	      //func MASK: 6x0000 0001 1111 = 0000001F
-	      uint32_t func = ( 0x0000003F & ins );
-	     
-	      printf( "\nR-Type Instruction:" 
-		      "\n-> OC: %x" 
-		      "\n-> rs: %x" 
-		      "\n-> rt: %x" 
-		      "\n-> rd: %x" 
-		      "\n-> func: %x\n",  
-		      oc, rs, rt, rd, func );
-			
-			switch( func ) 
-			{
-				case 0x00000020: 
-					puts( "Add Function" );
-					NEXT_STATE.REGS[rd] = CURRENT_STATE.REGS[rs] + CURRENT_STATE.REGS[rt];
-					break; 
-				case 0x0000000C: 
-					puts( "Terminate" );
-					RUN_FLAG = FALSE;
-					break; 
-				case 0x00000013:
-					//MTLO
-					puts( "Move to LO" );
-					NEXT_STATE.LO = CURRENT_STATE.REGS[rs];
-					break;
-				case 0x0000011:
-					//MTHI
-					puts( "Move to HI" );
-					NEXT_STATE.HI = CURRENT_STATE.REGS[rs];
-					break;
-				case 0x0000012:
-					//MFLO
-					puts( "Move from LO" );
-					CURRENT_STATE.REGS[rd] = NEXT_STATE.LO;
-					break;
-				case 0x0000010:
-					//MFHI
-					puts( "Move from HI" );
-					CURRENT_STATE.REGS[rd] = NEXT_STATE.HI;
-					break;
-			}		
-			break;
-      
-		}
-	    case 0x08000000:
-	    {
-	      //J-Jump Instruction
-	      break;
-	    }
-	    case 0x0C000000:
-	    {
-	      //JAL-Jump and Link Instruction
-	      break;
-	    }
-	    default:
-	    {
-	    	//rs MASK: 0000 0011 1110 0000 4x0000 = 03E00000
-	      uint32_t rs = ( 0x03E00000 & ins  ) >> 21;
-	      //rt MASK: 0000 0000 0001 1111 4x0000 = 001F0000;
-	      uint32_t rt = ( 0x001F0000 & ins  ) >> 16;
-	      //Immediate MASK: 4x0000 4x1111 = 0000FFFF;
-	      uint32_t im = ( 0x0000FFFF & ins  );
-		  
-	      //I-Type Instruction
-	      printf( "\nI-Type Instruction:" 
-		      "\n-> OC: %x" 
-		      "\n-> rs: %x" 
-		      "\n-> rt: %x" 
-		      "\n-> Immediate: %x\n",  
-		      oc, rs, rt, im );
+			{                                
+				//rs MASK: 0000 0011 1110 0000 4x0000 = 03E00000
+				uint32_t rs = ( 0x03E00000 & ins  ) >> 21;
+				//rt MASK: 0000 0000 0001 1111 4x0000 = 001F0000;
+				uint32_t rt = ( 0x001F0000 & ins  ) >> 16;
+				//rd MASK: 4x0000 1111 1000 0000 0000 = 0000F800;
+				uint32_t rd = ( 0x0000F800 & ins  ) >> 11;
+				//func MASK: 6x0000 0001 1111 = 0000001F
+				uint32_t func = ( 0x0000003F & ins );
 
-		switch( oc )
-		{
-			case 0x20000000:
-			{
-				//ADDI
-				puts( "ADDI" );
-				uint32_t sum = ( rt + im ) << 16;
-				*NEXT_STATE.REGS = *CURRENT_STATE.REGS | sum;
+				printf( "\nR-Type Instruction:" 
+						"\n-> OC: %x" 
+						"\n-> rs: %x" 
+						"\n-> rt: %x" 
+						"\n-> rd: %x" 
+						"\n-> func: %x\n",  
+						oc, rs, rt, rd, func );
+
+				switch( func ) 
+				{
+					case 0x00000020: 
+						puts( "Add Function" );
+						NEXT_STATE.REGS[rd] = CURRENT_STATE.REGS[rs] + CURRENT_STATE.REGS[rt];
+						break; 
+
+					case 0x00000021:
+						puts( "Add Unsigned Function" );
+						NEXT_STATE.REGS[rd] = CURRENT_STATE.REGS[rs] + CURRENT_STATE.REGS[rt];
+						break; 
+
+					case 0x00000022:
+						puts( "Subtract Function" );
+						NEXT_STATE.REGS[rd] = CURRENT_STATE.REGS[rs] - CURRENT_STATE.REGS[rt];
+						break;
+
+					case 0x00000023:
+						puts( "Subtract Unsigned Function" );
+						NEXT_STATE.REGS[rd] = CURRENT_STATE.REGS[rs] - CURRENT_STATE.REGS[rt];
+						break;
+
+					case 0x00000018:
+						puts( "Multiply Function" );
+
+						//if either of the 2 preceding instructions were MFLO or MFHI, result is undefined
+						if(prevInstruction == 0x0000012 || prevInstruction == 0x0000011)
+						{
+							puts("Result is undefined");
+							break;						
+						}
+						int64_t tempResult = CURRENT_STATE.REGS[rs] * CURRENT_STATE.REGS[rt];
+						
+						NEXT_STATE.LO = tempResult & 0xFFFFFFFF; //get low 32-bits
+						NEXT_STATE.HI = tempResult >> 32; //get high 32-bits
+						break;
+
+					case 0x0000000C: 
+						puts( "Terminate" );
+						RUN_FLAG = FALSE;
+						break; 
+
+					case 0x00000013:
+						//MTLO
+						puts( "Move to LO" );
+						NEXT_STATE.LO = CURRENT_STATE.REGS[rs];
+						break;
+
+					case 0x0000011:
+						//MTHI
+						puts( "Move to HI" );
+						NEXT_STATE.HI = CURRENT_STATE.REGS[rs];
+						break;
+
+					case 0x0000012:
+						//MFLO
+						puts( "Move from LO" );
+						CURRENT_STATE.REGS[rd] = NEXT_STATE.LO;
+						break;
+
+					case 0x0000010:
+						//MFHI
+						puts( "Move from HI" );
+						CURRENT_STATE.REGS[rd] = NEXT_STATE.HI;
+						break;
+				}
+				prevInstruction = func;		
 				break;
-			}
-			case 0xA000000:
-			{
-        //SB - Store Byte
-        
-        //Extend sign of immediate register to get memory offset
-				uint32_t offset = extend_sign( im );
-        //Create a effective memory address
-				uint32_t eAddr = offset + CURRENT_STATE.REGS[rs];
-        
-        //Store a byte sized data in register rt to the virtual address. Shift right by 24 to only store one byte
-				mem_write_32( eAddr, NEXT_STATE.REGS[rt] >> 24 );
-      }
-			case 0x83:
-			{
-				//LW - Load Word
-        
-        //Extend sign of immediate register to get memory offset
-				uint32_t offset = extend_sign( im );
-        //Create a effective memory address
-				uint32_t eAddr = offset + CURRENT_STATE.REGS[rs];
-        
-        //Load data from memory into rt register
-        NEXT_STATE.REGS[rt] = mem_read_32( eAddr );
-        
-				//uint32_t eAddress = *CURRENT_STATE.REGS[im]+ *CURRENT_STATE.REGS[rs];
-				//*NEXT_STATE.REGS[rt] = 
-			}
-		}
 
-	    }
+			}
+		case 0x08000000:
+
+			//J-Jump Instruction
+			break;
+
+		case 0x0C000000:
+
+			//JAL-Jump and Link Instruction
+			break;
+
+		default:
+			{
+
+				//rs MASK: 0000 0011 1110 0000 4x0000 = 03E00000
+				uint32_t rs = ( 0x03E00000 & ins  ) >> 21;
+				//rt MASK: 0000 0000 0001 1111 4x0000 = 001F0000;
+				uint32_t rt = ( 0x001F0000 & ins  ) >> 16;
+				//Immediate MASK: 4x0000 4x1111 = 0000FFFF;
+				uint32_t im = ( 0x0000FFFF & ins  );
+
+				//I-Type Instruction
+				printf( "\nI-Type Instruction:" 
+						"\n-> OC: %x" 
+						"\n-> rs: %x" 
+						"\n-> rt: %x" 
+						"\n-> Immediate: %x\n",  
+						oc, rs, rt, im );
+
+				switch( oc )
+				{
+					case 0x20000000:
+						{	
+							//ADDI
+							puts( "ADDI" );
+							uint32_t sum = ( rt + im ) << 16;
+							*NEXT_STATE.REGS = *CURRENT_STATE.REGS | sum;
+							break;
+						}	
+					case 0xA000000:
+						{
+							//SB - Store Byte
+
+							//Extend sign of immediate register to get memory offset
+							uint32_t offset = extend_sign( im );
+							//Create a effective memory address
+							uint32_t eAddr = offset + CURRENT_STATE.REGS[rs];
+
+							//Store a byte sized data in register rt to the virtual address. Shift right by 24 to only store one byte
+							mem_write_32( eAddr, NEXT_STATE.REGS[rt] >> 24 );
+							break;
+						}
+					case 0x8C000000:
+						{	
+							//LW - Load Word
+
+							//Extend sign of immediate register to get memory offset
+							uint32_t offset = extend_sign( im );
+							//Create a effective memory address
+							uint32_t eAddr = offset + CURRENT_STATE.REGS[rs];
+
+							//Load data from memory into rt register
+							NEXT_STATE.REGS[rt] = mem_read_32( eAddr );
+							break;
+
+						}	
+				}
+
+			}
 
 	}
-
 	NEXT_STATE.PC = CURRENT_STATE.PC + 0x4;
+	//?CURRENT_STATE.PC = CURRENT_STATE.PC + 0x4;
 	//RUN_FLAG = FALSE;
 
 }
@@ -499,7 +534,7 @@ void initialize() {
 void print_program(){
 	int i;
 	uint32_t addr;
-	
+
 	for(i=0; i<PROGRAM_SIZE; i++){
 		addr = MEM_TEXT_BEGIN + (i*4);
 		printf("[0x%x]\t", addr);
@@ -521,7 +556,7 @@ int main(int argc, char *argv[]) {
 	printf("\n**************************\n");
 	printf("Welcome to MU-MIPS SIM...\n");
 	printf("**************************\n\n");
-	
+
 	if (argc < 2) {
 		printf("Error: You should provide input file.\nUsage: %s <input program> \n\n",  argv[0]);
 		exit(1);
