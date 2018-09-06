@@ -335,16 +335,14 @@ void handle_instruction()
 	//Get the current instruction
 	uint32_t ins = mem_read_32( CURRENT_STATE.PC );
 
-	//0000 0000 0010 0001 0000 0000 0010 0000
-	//0x00210020
-	//ins = 0x20010001;
-
 	//puts( ins );
 	puts( "//*************************//" );
 	printf( "\nInstruction: %08x \n", ins );
 
 	//opcode MASK: 1111 1100 0000 0000 4x0000 = FC0000000
 	uint32_t oc = ( 0xFC000000 & ins  );
+
+	uint32_t jump = 0x4;
 
 	printf( "\nOpcode: %08x \n", oc );
 
@@ -360,6 +358,8 @@ void handle_instruction()
 				uint32_t rt = ( 0x001F0000 & ins  ) >> 16;
 				//rd MASK: 4x0000 1111 1000 0000 0000 = 0000F800;
 				uint32_t rd = ( 0x0000F800 & ins  ) >> 11;
+				//sa MASK: 4X0000 0000 0111 1100 0000 = 000007C0;
+				uint32_t sa = ( 0x000007C0 & ins  ) >> 6;
 				//func MASK: 6x0000 0001 1111 = 0000001F
 				uint32_t func = ( 0x0000003F & ins );
 
@@ -374,26 +374,32 @@ void handle_instruction()
 				switch( func ) 
 				{
 					case 0x00000020: 
+						//ADD
 						puts( "Add Function" );
 						NEXT_STATE.REGS[rd] = CURRENT_STATE.REGS[rs] + CURRENT_STATE.REGS[rt];
 						break; 
 
 					case 0x00000021:
+						//ADDU
 						puts( "Add Unsigned Function" );
 						NEXT_STATE.REGS[rd] = CURRENT_STATE.REGS[rs] + CURRENT_STATE.REGS[rt];
 						break; 
 
 					case 0x00000022:
+						//SUB
 						puts( "Subtract Function" );
 						NEXT_STATE.REGS[rd] = CURRENT_STATE.REGS[rs] - CURRENT_STATE.REGS[rt];
 						break;
 
 					case 0x00000023:
+						//SUBU
 						puts( "Subtract Unsigned Function" );
 						NEXT_STATE.REGS[rd] = CURRENT_STATE.REGS[rs] - CURRENT_STATE.REGS[rt];
 						break;
 
 					case 0x00000018:
+					{
+						//MULT
 						puts( "Multiply Function" );
 
 						//if either of the 2 preceding instructions were MFLO or MFHI, result is undefined
@@ -402,16 +408,150 @@ void handle_instruction()
 							puts("Result is undefined");
 							break;						
 						}
-						int64_t tempResult = CURRENT_STATE.REGS[rs] * CURRENT_STATE.REGS[rt];
+
+						uint64_t tempResult = CURRENT_STATE.REGS[rs] * CURRENT_STATE.REGS[rt];
 						
 						NEXT_STATE.LO = tempResult & 0xFFFFFFFF; //get low 32-bits
 						NEXT_STATE.HI = tempResult >> 32; //get high 32-bits
 						break;
+					}
 
-					case 0x0000000C: 
+					case 0x00000019:
+					{
+						//MULTU
+						puts( "Multiply Unsigned Function" );
+
+						//if either of the 2 preceding instructions were MFLO or MFHI, result is undefined
+						if(prevInstruction == 0x0000012 || prevInstruction == 0x0000011)
+						{
+							puts("Result is undefined");
+							break;						
+						}
+
+						uint64_t tempResult = CURRENT_STATE.REGS[rs] * CURRENT_STATE.REGS[rt];
+						
+						NEXT_STATE.LO = tempResult & 0xFFFFFFFF; //get low 32-bits
+						NEXT_STATE.HI = tempResult >> 32; //get high 32-bits
+						break;
+					}
+
+					case 0x0000001A:
+						//DIV
+						puts( "Divide Function" );
+
+						//if either of the 2 preceding instructions were MFLO or MFHI, result is undefined
+						if(prevInstruction == 0x0000012 || prevInstruction == 0x0000011 || CURRENT_STATE.REGS[rt] == 0)
+						{
+							puts("Result is undefined");
+							break;						
+						}
+
+						NEXT_STATE.LO = CURRENT_STATE.REGS[rs] / CURRENT_STATE.REGS[rt]; //get quotient
+						NEXT_STATE.HI = CURRENT_STATE.REGS[rs] % CURRENT_STATE.REGS[rt];  //get remainder
+						break;
+
+					case 0x0000001B:
+						//DIVU
+						puts( "Divide Unsigned Function" );
+
+						//if either of the 2 preceding instructions were MFLO or MFHI, result is undefined
+						if(prevInstruction == 0x0000012 || prevInstruction == 0x0000011 || CURRENT_STATE.REGS[rt] == 0)
+						{
+							puts("Result is undefined");
+							break;						
+						}
+
+						NEXT_STATE.LO = CURRENT_STATE.REGS[rs] / CURRENT_STATE.REGS[rt]; //get quotient
+						NEXT_STATE.HI = CURRENT_STATE.REGS[rs] % CURRENT_STATE.REGS[rt];  //get remainder
+						break;
+
+					case 0X00000024:
+						//AND
+						NEXT_STATE.REGS[rd] = CURRENT_STATE.REGS[rs] & CURRENT_STATE.REGS[rt];
+						break; 
+
+					case 0X00000025:
+						//OR
+						NEXT_STATE.REGS[rd] = CURRENT_STATE.REGS[rs] | CURRENT_STATE.REGS[rt];
+						break; 
+					
+					case 0X00000026:
+						//XOR
+						NEXT_STATE.REGS[rd] = CURRENT_STATE.REGS[rs] ^ CURRENT_STATE.REGS[rt];
+						break;
+
+					case 0x00000027:
+						//NOR
+						NEXT_STATE.REGS[rd] = ~(CURRENT_STATE.REGS[rs] | CURRENT_STATE.REGS[rt]);
+						break;
+
+					case 0x0000002A:
+						//SLT
+						if( CURRENT_STATE.REGS[rs] < CURRENT_STATE.REGS[rt] )
+							NEXT_STATE.REGS[rd] = 0x00000001;
+						else
+							NEXT_STATE.REGS[rd] = 0x00000000;
+						break;
+
+					case 0x00000000:
+					{
+						//SLL
+						uint32_t temp = CURRENT_STATE.REGS[rt] << sa;
+						NEXT_STATE.REGS[rd] = temp;
+						break;
+					}
+
+					case 0x00000002:
+					{
+						//SRL
+						uint32_t temp = CURRENT_STATE.REGS[rt] >> sa;
+						NEXT_STATE.REGS[rd] = temp;
+						break;
+					}			
+
+					case 0x00000003:
+					{
+						//SRA
+						uint32_t temp;
+						int x;
+						uint32_t hiBit = CURRENT_STATE.REGS[rt] & 0x80000000;
+						if(hiBit == 1) 
+						{	
+							temp = CURRENT_STATE.REGS[rt];
+							for( x = 0; x < sa; x++ )
+							{
+								temp = ((temp >> 1) | 0x80000000); 
+							}							
+						}
+						else
+						{
+							temp = CURRENT_STATE.REGS[rt] >> sa; 
+						}
+						NEXT_STATE.REGS[rd] = temp;
+						break;
+					}
+					case 0x0000000C:
+						//SYSCALL - System Call, exit the program.
+						NEXT_STATE.REGS[0] = 0xA;
 						puts( "Terminate" );
 						RUN_FLAG = FALSE;
 						break; 
+
+					case 0x00000008:
+						{
+						//JR -
+						uint32_t temp = CURRENT_STATE.REGS[rs];
+						jump = temp - CURRENT_STATE.PC;
+						break;
+						}
+					case 0x00000009:
+						{
+						//JALR - Jump and Link
+						uint32_t temp = CURRENT_STATE.REGS[rs];
+						NEXT_STATE.REGS[rd] = CURRENT_STATE.PC + 0x8;
+						jump = temp - CURRENT_STATE.PC;
+						break;
+						}
 
 					case 0x00000013:
 						//MTLO
@@ -442,14 +582,25 @@ void handle_instruction()
 
 			}
 		case 0x08000000:
-
-			//J-Jump Instruction
-			break;
+			{
+				uint32_t target = ( 0x03FFFFFF & ins  );
+				uint32_t temp = target << 2;
+				uint32_t bits = ( CURRENT_STATE.PC & 0xF0000000 );
+				jump = ( bits | temp ) - CURRENT_STATE.PC;
+				break;
+			}
 
 		case 0x0C000000:
-
-			//JAL-Jump and Link Instruction
-			break;
+			{
+				//JAL-Jump and Link Instruction
+				//target MASK: 0000 0011 1110 0000 4x0000 = 03E00000
+				uint32_t target = ( 0x03FFFFFF & ins  );
+				uint32_t temp = target << 2;
+				uint32_t bits = ( CURRENT_STATE.PC & 0xF0000000 );
+				NEXT_STATE.REGS[31] = CURRENT_STATE.PC + 0x8;
+				jump = ( bits | temp ) - CURRENT_STATE.PC;
+				break;
+			}
 
 		default:
 			{
@@ -478,7 +629,15 @@ void handle_instruction()
 							uint32_t sum = ( rt + im ) << 16;
 							*NEXT_STATE.REGS = *CURRENT_STATE.REGS | sum;
 							break;
-						}	
+						}
+					case 0x24000000:
+						{	
+							//ADDIU
+							puts( "ADDIU" );
+							uint32_t result = extend_sign(im) + rs;
+							NEXT_STATE.REGS[rt] = result;
+							break;
+						}		
 					case 0xA000000:
 						{
 							//SB - Store Byte
@@ -492,6 +651,28 @@ void handle_instruction()
 							mem_write_32( eAddr, NEXT_STATE.REGS[rt] >> 24 );
 							break;
 						}
+					case 0xAC00000:
+						{
+							//SW - Store Word
+							//Extend sign of immediate register to get memory offset
+							uint32_t offset = extend_sign( im );
+							//Create a effective memory address
+							uint32_t eAddr = offset + CURRENT_STATE.REGS[rs];
+							//Store a byte sized data in register rt to the virtual address. Shift right by 24 to only store one byte
+							mem_write_32( eAddr, NEXT_STATE.REGS[rt]);
+							break;
+						}
+					case 0xA400000:
+						{
+							//SH - Store Halfword
+							//Extend sign of immediate register to get memory offset
+							uint32_t offset = extend_sign( im );
+							//Create a effective memory address
+							uint32_t eAddr = offset + CURRENT_STATE.REGS[rs];
+							//Store a byte sized data in register rt to the virtual address. Shift right by 24 to only store one byte
+							mem_write_32( eAddr, NEXT_STATE.REGS[rt] >> 16 );
+							break;
+						}
 					case 0x8C000000:
 						{	
 							//LW - Load Word
@@ -502,17 +683,128 @@ void handle_instruction()
 							uint32_t eAddr = offset + CURRENT_STATE.REGS[rs];
 
 							//Load data from memory into rt register
-							NEXT_STATE.REGS[rt] = mem_read_32( eAddr );
+							NEXT_STATE.REGS[rt] = 0x0000FFFF | mem_read_32( eAddr );
+							break;
+						}	
+					case 0x80000000:
+						{	
+							//LB - Load Byte
+							//Extend sign of immediate register to get memory offset
+							uint32_t offset = extend_sign( im );
+							//Create a effective memory address
+							uint32_t eAddr = offset + CURRENT_STATE.REGS[rs];
+							//Load data from memory into rt register
+							NEXT_STATE.REGS[rt] = 0x0000000F | mem_read_32( eAddr );
+							break;
+						}
+					case 0x84000000:
+						{	
+							//LH - Load Halfword
+							//Extend sign of immediate register to get memory offset
+							uint32_t offset = extend_sign( im );
+							//Create a effective memory address
+							uint32_t eAddr = offset + CURRENT_STATE.REGS[rs];
+							//Load data from memory into rt register
+							NEXT_STATE.REGS[rt] = 0x000000FF | mem_read_32( eAddr );
 							break;
 
-						}	
+						}
+					case 0x30000000:
+						//ANDI
+						{
+							///zero extend immediate then and it with rs
+							uint32_t temp = (im & 0x0000FFFF) & CURRENT_STATE.REGS[rs];	
+							NEXT_STATE.REGS[rt] = temp;
+							break;
+						}
+					case 0x3C000000:
+						{	
+							//LUI - Load Upper Immediate
+							//Load data from instruction into rt register
+							NEXT_STATE.REGS[rt] = im;
+							break;
+						}
+					case 0x10000000:	
+						{
+							//BEG
+							uint32_t target = extend_sign( im ) << 2;
+							if( CURRENT_STATE.REGS[rs] == CURRENT_STATE.REGS[rt] )
+							{
+								jump = target;
+							}
+							break;
+						}
+					case 0x14000000:	
+						{
+							//BNE - Branch on Not Equal
+							uint32_t target = extend_sign( im ) << 2;
+							if( CURRENT_STATE.REGS[rs] != CURRENT_STATE.REGS[rt] )
+							{
+								jump = target;
+							}
+							break;
+						}
+					case 0x18000000:	
+						{
+							//BLEZ - Branch on Less Than or Equal to Zero
+							uint32_t target = extend_sign( im ) << 2;
+							if( ( CURRENT_STATE.REGS[rs] & 0x80000000 ) || ( CURRENT_STATE.REGS[rt] == 0 ) )
+							{
+								jump = target;
+							}
+							break;
+						}
+					case 0x1C000000:	
+						{
+							//BGTZ - Branch on Greater Than Zero
+							uint32_t target = extend_sign( im ) << 2;
+							if( !( CURRENT_STATE.REGS[rs] & 0x80000000 ) || ( CURRENT_STATE.REGS[rt] != 0 ) )
+							{
+								jump = target;
+							}
+							break;
+						}
+					case 0x34000000:
+						//ORI
+						{
+							///zero extend immediate then and it with rs
+							uint32_t temp = (im & 0x0000FFFF) | CURRENT_STATE.REGS[rs];	
+							NEXT_STATE.REGS[rt] = temp;
+							break;
+						}
+					case 0x04000000:	
+						{
+							//REGIMM
+							switch( rt )
+							{
+								case 0x00000000:
+									{
+										//BLTZ - Branch on Less Than Zero
+										uint32_t target = extend_sign( im ) << 2;
+										if( ( CURRENT_STATE.REGS[rs] & 0x80000000 ) )
+										{
+											jump = target;
+										}
+									}
+								case 0x00000001:
+									{
+										//BGEZ - Branch on Greater Than or Equal to Zero
+										uint32_t target = extend_sign( im ) << 2;
+										if( !( CURRENT_STATE.REGS[rs] & 0x80000000 ) )
+										{
+											jump = target;
+										}
+									}
+							}
+							break;
+						}		
 				}
 
 			}
 
 	}
-	NEXT_STATE.PC = CURRENT_STATE.PC + 0x4;
-	//?CURRENT_STATE.PC = CURRENT_STATE.PC + 0x4;
+	
+	NEXT_STATE.PC = CURRENT_STATE.PC + jump;
 	//RUN_FLAG = FALSE;
 
 }
