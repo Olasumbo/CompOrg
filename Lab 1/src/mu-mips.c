@@ -838,7 +838,564 @@ void print_program(){
 /* Print the instruction at given memory address (in MIPS assembly format)    */
 /************************************************************/
 void print_instruction(uint32_t addr){
-	/*IMPLEMENT THIS*/
+
+	//Get the current instruction
+	uint32_t ins = mem_read_32( CURRENT_STATE.PC );
+
+	//opcode MASK: 1111 1100 0000 0000 4x0000 = FC0000000
+	uint32_t oc = ( 0xFC000000 & ins  );
+
+	//Handle each case for instructions
+	switch( oc )
+	{
+		//R-Type
+		case 0x00000000: 
+			{                                
+				//rs MASK: 0000 0011 1110 0000 4x0000 = 03E00000
+				uint32_t rs = ( 0x03E00000 & ins  ) >> 21;
+				//rt MASK: 0000 0000 0001 1111 4x0000 = 001F0000;
+				uint32_t rt = ( 0x001F0000 & ins  ) >> 16;
+				//rd MASK: 4x0000 1111 1000 0000 0000 = 0000F800;
+				uint32_t rd = ( 0x0000F800 & ins  ) >> 11;
+				//sa MASK: 4X0000 0000 0111 1100 0000 = 000007C0;
+				uint32_t sa = ( 0x000007C0 & ins  ) >> 6;
+				//func MASK: 6x0000 0001 1111 = 0000001F
+				uint32_t func = ( 0x0000003F & ins );
+        
+				switch( func ) 
+				{
+					case 0x00000020: 
+						//ADD
+            printf( "\n\nADD Instruction:" 
+  						"\n-> OC: %x" 
+  						"\n-> rs: %x" 
+  						"\n-> rt: %x" 
+  						"\n-> rd: %x" 
+  						"\n-> shamt: %x" 
+  						"\n-> func: %x\n",  
+  						oc, rs, rt, rd, sa, func );
+						break; 
+
+					case 0x00000021:
+						//ADDU
+            printf( "\n\nADDU Instruction:" 
+  						"\n-> OC: %x" 
+  						"\n-> rs: %x" 
+  						"\n-> rt: %x" 
+  						"\n-> rd: %x" 
+  						"\n-> shamt: %x" 
+  						"\n-> func: %x\n",  
+  						oc, rs, rt, rd, sa, func );
+						break; 
+
+					case 0x00000022:
+						//SUB
+            printf( "\n\nSUB Instruction:" 
+  						"\n-> OC: %x" 
+  						"\n-> rs: %x" 
+  						"\n-> rt: %x" 
+  						"\n-> rd: %x" 
+  						"\n-> shamt: %x" 
+  						"\n-> func: %x\n",  
+  						oc, rs, rt, rd, sa, func );
+						break;
+
+					case 0x00000023:
+						//SUBU
+						puts( "Subtract Unsigned Function" );
+            printf( "\n\nSUBU Instruction:" 
+  						"\n-> OC: %x" 
+  						"\n-> rs: %x" 
+  						"\n-> rt: %x" 
+  						"\n-> rd: %x" 
+  						"\n-> shamt: %x" 
+  						"\n-> func: %x\n",  
+  						oc, rs, rt, rd, sa, func );
+						break;
+
+					case 0x00000018:
+					{
+						//MULT
+            printf( "\n\nMULT Instruction:" 
+  						"\n-> OC: %x" 
+  						"\n-> rs: %x" 
+  						"\n-> rt: %x" 
+  						"\n-> rd: %x" 
+  						"\n-> shamt: %x" 
+  						"\n-> func: %x\n",  
+  						oc, rs, rt, rd, sa, func );
+						break;
+					}
+
+					case 0x00000019:
+					{
+						//MULTU
+            printf( "\n\nMULTU Instruction:" 
+  						"\n-> OC: %x" 
+  						"\n-> rs: %x" 
+  						"\n-> rt: %x" 
+  						"\n-> rd: %x" 
+  						"\n-> shamt: %x" 
+  						"\n-> func: %x\n",  
+  						oc, rs, rt, rd, sa, func );
+						break;
+					}
+
+					case 0x0000001A:
+						//DIV
+            printf( "\n\nDIV Instruction:" 
+  						"\n-> OC: %x" 
+  						"\n-> rs: %x" 
+  						"\n-> rt: %x" 
+  						"\n-> rd: %x" 
+  						"\n-> shamt: %x" 
+  						"\n-> func: %x\n",  
+  						oc, rs, rt, rd, sa, func );
+						break;
+
+					case 0x0000001B:
+						//DIVU
+            printf( "\n\nDIVU Instruction:" 
+  						"\n-> OC: %x" 
+  						"\n-> rs: %x" 
+  						"\n-> rt: %x" 
+  						"\n-> rd: %x" 
+  						"\n-> shamt: %x" 
+  						"\n-> func: %x\n",  
+  						oc, rs, rt, rd, sa, func );
+						break;
+
+					case 0X00000024:
+						//AND
+            printf( "\n\nAND Instruction:" 
+  						"\n-> OC: %x" 
+  						"\n-> rs: %x" 
+  						"\n-> rt: %x" 
+  						"\n-> rd: %x" 
+  						"\n-> shamt: %x" 
+  						"\n-> func: %x\n",  
+  						oc, rs, rt, rd, sa, func );
+						break;
+
+					case 0X00000025:
+						//OR
+            printf( "\n\nOR Instruction:" 
+  						"\n-> OC: %x" 
+  						"\n-> rs: %x" 
+  						"\n-> rt: %x" 
+  						"\n-> rd: %x" 
+  						"\n-> shamt: %x" 
+  						"\n-> func: %x\n",  
+  						oc, rs, rt, rd, sa, func );
+						break;
+					
+					case 0X00000026:
+						//XOR
+            printf( "\n\nXOR Instruction:" 
+  						"\n-> OC: %x" 
+  						"\n-> rs: %x" 
+  						"\n-> rt: %x" 
+  						"\n-> rd: %x" 
+  						"\n-> shamt: %x" 
+  						"\n-> func: %x\n",  
+  						oc, rs, rt, rd, sa, func );
+						break;
+
+					case 0x00000027:
+						//NOR
+            printf( "\n\nNOR Instruction:" 
+  						"\n-> OC: %x" 
+  						"\n-> rs: %x" 
+  						"\n-> rt: %x" 
+  						"\n-> rd: %x" 
+  						"\n-> shamt: %x" 
+  						"\n-> func: %x\n",  
+  						oc, rs, rt, rd, sa, func );
+						break;
+
+					case 0x0000002A:
+						//SLT
+            printf( "\n\nSLTs Instruction:" 
+  						"\n-> OC: %x" 
+  						"\n-> rs: %x" 
+  						"\n-> rt: %x" 
+  						"\n-> rd: %x" 
+  						"\n-> shamt: %x" 
+  						"\n-> func: %x\n",  
+  						oc, rs, rt, rd, sa, func );
+						break;
+
+					case 0x00000000:
+					{
+						//SLL
+            printf( "\n\nSLL Instruction:" 
+  						"\n-> OC: %x" 
+  						"\n-> rs: %x" 
+  						"\n-> rt: %x" 
+  						"\n-> rd: %x" 
+  						"\n-> shamt: %x" 
+  						"\n-> func: %x\n",  
+  						oc, rs, rt, rd, sa, func );
+						break;
+					}
+
+					case 0x00000002:
+					{
+						//SRL
+            printf( "\n\nSRL Instruction:" 
+  						"\n-> OC: %x" 
+  						"\n-> rs: %x" 
+  						"\n-> rt: %x" 
+  						"\n-> rd: %x" 
+  						"\n-> shamt: %x" 
+  						"\n-> func: %x\n",  
+  						oc, rs, rt, rd, sa, func );
+						break;
+					}			
+
+					case 0x00000003:
+					{
+						//SRA
+            printf( "\n\nSRA Instruction:" 
+  						"\n-> OC: %x" 
+  						"\n-> rs: %x" 
+  						"\n-> rt: %x" 
+  						"\n-> rd: %x" 
+  						"\n-> shamt: %x" 
+  						"\n-> func: %x\n",  
+  						oc, rs, rt, rd, sa, func );
+						break;
+					}
+					case 0x0000000C:
+						//SYSCALL - System Call, exit the program.
+            printf( "\n\nSYSCALL(exit) Instruction:" 
+  						"\n-> OC: %x" 
+  						"\n-> rs: %x" 
+  						"\n-> rt: %x" 
+  						"\n-> rd: %x" 
+  						"\n-> shamt: %x" 
+  						"\n-> func: %x\n",  
+  						oc, rs, rt, rd, sa, func );
+						break;
+
+					case 0x00000008:
+            //JR
+            printf( "\n\nJR Instruction:" 
+  						"\n-> OC: %x" 
+  						"\n-> rs: %x" 
+  						"\n-> rt: %x" 
+  						"\n-> rd: %x" 
+  						"\n-> shamt: %x" 
+  						"\n-> func: %x\n",  
+  						oc, rs, rt, rd, sa, func );
+						break;
+					case 0x00000009:
+            //JALR
+            printf( "\n\nJALR Instruction:" 
+  						"\n-> OC: %x" 
+  						"\n-> rs: %x" 
+  						"\n-> rt: %x" 
+  						"\n-> rd: %x" 
+  						"\n-> shamt: %x" 
+  						"\n-> func: %x\n",  
+  						oc, rs, rt, rd, sa, func );
+						break;
+
+					case 0x00000013:
+						//MTLO
+            printf( "\n\nMTLO Instruction:" 
+  						"\n-> OC: %x" 
+  						"\n-> rs: %x" 
+  						"\n-> rt: %x" 
+  						"\n-> rd: %x" 
+  						"\n-> shamt: %x" 
+  						"\n-> func: %x\n",  
+  						oc, rs, rt, rd, sa, func );
+						break;
+
+					case 0x0000011:
+						//MTHI
+            printf( "\n\nMTHI Instruction:" 
+  						"\n-> OC: %x" 
+  						"\n-> rs: %x" 
+  						"\n-> rt: %x" 
+  						"\n-> rd: %x" 
+  						"\n-> shamt: %x" 
+  						"\n-> func: %x\n",  
+  						oc, rs, rt, rd, sa, func );
+						break;
+
+					case 0x0000012:
+						//MFLO
+            printf( "\n\nMFLO Instruction:" 
+  						"\n-> OC: %x" 
+  						"\n-> rs: %x" 
+  						"\n-> rt: %x" 
+  						"\n-> rd: %x" 
+  						"\n-> shamt: %x" 
+  						"\n-> func: %x\n",  
+  						oc, rs, rt, rd, sa, func );
+						break;
+
+					case 0x0000010:
+						//MFHI
+            printf( "\n\nMFHI Instruction:" 
+  						"\n-> OC: %x" 
+  						"\n-> rs: %x" 
+  						"\n-> rt: %x" 
+  						"\n-> rd: %x" 
+  						"\n-> shamt: %x" 
+  						"\n-> func: %x\n",  
+  						oc, rs, rt, rd, sa, func );
+						break;
+				}
+				prevInstruction = func;		
+				break;
+
+			}
+		case 0x08000000:
+			{
+        //JL
+				uint32_t target = ( 0x03FFFFFF & ins  );
+        printf( "\n\nJL Instruction:" 
+  				"\n-> OC: %x" 
+  				"\n-> target: %x\n",  
+  				oc, target );
+				break;
+			}
+
+		case 0x0C000000:
+			{
+				//JAL-Jump and Link Instruction
+				uint32_t target = ( 0x03FFFFFF & ins  );
+        printf( "\n\nJAL Instruction:" 
+  				"\n-> OC: %x" 
+  				"\n-> target: %x\n",  
+  				oc, target );
+				break;
+			}
+
+		default:
+			{
+
+				//rs MASK: 0000 0011 1110 0000 4x0000 = 03E00000
+				uint32_t rs = ( 0x03E00000 & ins  ) >> 21;
+				//rt MASK: 0000 0000 0001 1111 4x0000 = 001F0000;
+				uint32_t rt = ( 0x001F0000 & ins  ) >> 16;
+				//Immediate MASK: 4x0000 4x1111 = 0000FFFF;
+				uint32_t im = ( 0x0000FFFF & ins  );
+
+				//I-Type Instruction
+				printf( "\nI-Type Instruction:" 
+						"\n-> OC: %x" 
+						"\n-> rs: %x" 
+						"\n-> rt: %x" 
+						"\n-> Immediate: %x\n",  
+						oc, rs, rt, im );
+
+				switch( oc )
+				{
+					case 0x20000000:
+						{	
+							//ADDI
+      				printf( "\nADDI Instruction:" 
+      						"\n-> OC: %x" 
+      						"\n-> rs: %x" 
+      						"\n-> rt: %x" 
+      						"\n-> Immediate: %x\n",  
+      						oc, rs, rt, im );
+							break;
+						}
+					case 0x24000000:
+						{	
+							//ADDIU
+      				printf( "\nADDIU Instruction:" 
+      						"\n-> OC: %x" 
+      						"\n-> rs: %x" 
+      						"\n-> rt: %x" 
+      						"\n-> Immediate: %x\n",  
+      						oc, rs, rt, im );
+							break;
+						}		
+					case 0xA000000:
+						{
+							//SB - Store Byte
+      				printf( "\nSB Instruction:" 
+      						"\n-> OC: %x" 
+      						"\n-> rs: %x" 
+      						"\n-> rt: %x" 
+      						"\n-> Immediate: %x\n",  
+      						oc, rs, rt, im );
+							break;
+						}
+					case 0xAC00000:
+						{
+							//SW - Store Word
+      				printf( "\nSW Instruction:" 
+      						"\n-> OC: %x" 
+      						"\n-> rs: %x" 
+      						"\n-> rt: %x" 
+      						"\n-> Immediate: %x\n",  
+      						oc, rs, rt, im );
+							break;
+						}
+					case 0xA400000:
+						{
+							//SH - Store Halfword
+      				printf( "\nSH Instruction:" 
+      						"\n-> OC: %x" 
+      						"\n-> rs: %x" 
+      						"\n-> rt: %x" 
+      						"\n-> Immediate: %x\n",  
+      						oc, rs, rt, im );
+							break;
+						}
+					case 0x8C000000:
+						{	
+							//LW - Load Word
+      				printf( "\nLW Instruction:" 
+      						"\n-> OC: %x" 
+      						"\n-> rs: %x" 
+      						"\n-> rt: %x" 
+      						"\n-> Immediate: %x\n",  
+      						oc, rs, rt, im );
+							break;
+						}	
+					case 0x80000000:
+						{	
+							//LB - Load Byte
+      				printf( "\nLB Instruction:" 
+      						"\n-> OC: %x" 
+      						"\n-> rs: %x" 
+      						"\n-> rt: %x" 
+      						"\n-> Immediate: %x\n",  
+      						oc, rs, rt, im );
+							break;
+						}
+					case 0x84000000:
+						{	
+							//LH - Load Halfword
+      				printf( "\nLH Instruction:" 
+      						"\n-> OC: %x" 
+      						"\n-> rs: %x" 
+      						"\n-> rt: %x" 
+      						"\n-> Immediate: %x\n",  
+      						oc, rs, rt, im );
+							break;
+
+						}
+					case 0x30000000:
+						{
+              //ANDI
+      				printf( "\nANDI Instruction:" 
+      						"\n-> OC: %x" 
+      						"\n-> rs: %x" 
+      						"\n-> rt: %x" 
+      						"\n-> Immediate: %x\n",  
+      						oc, rs, rt, im );
+							break;
+						}
+					case 0x3C000000:
+						{	
+							//LUI - Load Upper Immediate
+      				printf( "\nLUI Instruction:" 
+      						"\n-> OC: %x" 
+      						"\n-> rs: %x" 
+      						"\n-> rt: %x" 
+      						"\n-> Immediate: %x\n",  
+      						oc, rs, rt, im );
+							break;
+						}
+					case 0x10000000:	
+						{
+							//BEG
+      				printf( "\nBEG Instruction:" 
+      						"\n-> OC: %x" 
+      						"\n-> rs: %x" 
+      						"\n-> rt: %x" 
+      						"\n-> Immediate: %x\n",  
+      						oc, rs, rt, im );
+							break;
+						}
+					case 0x14000000:	
+						{
+							//BNE - Branch on Not Equal
+      				printf( "\nBNE Instruction:" 
+      						"\n-> OC: %x" 
+      						"\n-> rs: %x" 
+      						"\n-> rt: %x" 
+      						"\n-> Immediate: %x\n",  
+      						oc, rs, rt, im );
+							break;
+						}
+					case 0x18000000:	
+						{
+							//BLEZ - Branch on Less Than or Equal to Zero
+      				printf( "\nBLEZ Instruction:" 
+      						"\n-> OC: %x" 
+      						"\n-> rs: %x" 
+      						"\n-> rt: %x" 
+      						"\n-> Immediate: %x\n",  
+      						oc, rs, rt, im );
+							break;
+						}
+					case 0x1C000000:	
+						{
+							//BGTZ - Branch on Greater Than Zero
+      				printf( "\nBGTZ Instruction:" 
+      						"\n-> OC: %x" 
+      						"\n-> rs: %x" 
+      						"\n-> rt: %x" 
+      						"\n-> Immediate: %x\n",  
+      						oc, rs, rt, im );
+							break;
+						}
+					case 0x34000000:
+						//ORI
+						{
+      				printf( "\nORI Instruction:" 
+      						"\n-> OC: %x" 
+      						"\n-> rs: %x" 
+      						"\n-> rt: %x" 
+      						"\n-> Immediate: %x\n",  
+      						oc, rs, rt, im );
+							break;
+						}
+					case 0x04000000:	
+						{
+							//REGIMM
+							switch( rt )
+							{
+								case 0x00000000:
+									{
+										//BLTZ - Branch on Less Than Zero
+            				printf( "\nBLTZ Instruction:" 
+            						"\n-> OC: %x" 
+            						"\n-> rs: %x" 
+            						"\n-> rt: %x" 
+            						"\n-> Immediate: %x\n",  
+            						oc, rs, rt, im );
+      							break;
+									}
+								case 0x00000001:
+									{
+										//BGEZ - Branch on Greater Than or Equal to Zero
+            				printf( "\nBGEZ Instruction:" 
+            						"\n-> OC: %x" 
+            						"\n-> rs: %x" 
+            						"\n-> rt: %x" 
+            						"\n-> Immediate: %x\n",  
+            						oc, rs, rt, im );
+      							break;
+									}
+							}
+							break;
+						}		
+				}
+
+			}
+
+	}
 }
 
 /***************************************************************/
