@@ -626,15 +626,15 @@ void handle_instruction()
 						{	
 							//ADDI
 							puts( "ADDI" );
-							uint32_t sum = ( rt + im ) << 16;
-							*NEXT_STATE.REGS = *CURRENT_STATE.REGS | sum;
+							uint32_t result = extend_sign(im) + CURRENT_STATE.REGS[rs];
+							NEXT_STATE.REGS[rt] = result;
 							break;
 						}
 					case 0x24000000:
 						{	
 							//ADDIU
 							puts( "ADDIU" );
-							uint32_t result = extend_sign(im) + rs;
+							uint32_t result = extend_sign(im) + CURRENT_STATE.REGS[rs];
 							NEXT_STATE.REGS[rt] = result;
 							break;
 						}		
@@ -648,21 +648,24 @@ void handle_instruction()
 							uint32_t eAddr = offset + CURRENT_STATE.REGS[rs];
 
 							//Store a byte sized data in register rt to the virtual address. Shift right by 24 to only store one byte
-							mem_write_32( eAddr, NEXT_STATE.REGS[rt] >> 24 );
+							mem_write_32( eAddr, ( CURRENT_STATE.REGS[rt] ) );
 							break;
 						}
-					case 0xAC00000:
+					case 0xAC000000:
 						{
+							puts("STORE WORD" );
 							//SW - Store Word
 							//Extend sign of immediate register to get memory offset
 							uint32_t offset = extend_sign( im );
 							//Create a effective memory address
 							uint32_t eAddr = offset + CURRENT_STATE.REGS[rs];
+
+
 							//Store a byte sized data in register rt to the virtual address. Shift right by 24 to only store one byte
-							mem_write_32( eAddr, NEXT_STATE.REGS[rt]);
+							mem_write_32( eAddr, CURRENT_STATE.REGS[rt] );
 							break;
 						}
-					case 0xA400000:
+					case 0xA4000000:
 						{
 							//SH - Store Halfword
 							//Extend sign of immediate register to get memory offset
@@ -670,11 +673,12 @@ void handle_instruction()
 							//Create a effective memory address
 							uint32_t eAddr = offset + CURRENT_STATE.REGS[rs];
 							//Store a byte sized data in register rt to the virtual address. Shift right by 24 to only store one byte
-							mem_write_32( eAddr, NEXT_STATE.REGS[rt] >> 16 );
+							mem_write_32( eAddr, CURRENT_STATE.REGS[rt] );
 							break;
 						}
 					case 0x8C000000:
 						{	
+							puts("LOAD WORD" );
 							//LW - Load Word
 
 							//Extend sign of immediate register to get memory offset
@@ -683,7 +687,7 @@ void handle_instruction()
 							uint32_t eAddr = offset + CURRENT_STATE.REGS[rs];
 
 							//Load data from memory into rt register
-							NEXT_STATE.REGS[rt] = 0x0000FFFF | mem_read_32( eAddr );
+							NEXT_STATE.REGS[rt] = mem_read_32( eAddr );
 							break;
 						}	
 					case 0x80000000:
@@ -721,7 +725,7 @@ void handle_instruction()
 						{	
 							//LUI - Load Upper Immediate
 							//Load data from instruction into rt register
-							NEXT_STATE.REGS[rt] = im;
+							NEXT_STATE.REGS[rt] = (im << 16);
 							break;
 						}
 					case 0x10000000:	
@@ -762,6 +766,14 @@ void handle_instruction()
 							{
 								jump = target;
 							}
+							break;
+						}
+					case 0x38000000:
+						//XORI
+						{
+							///zero extend immediate then and it with rs
+							uint32_t temp = (im & 0x0000FFFF) ^ CURRENT_STATE.REGS[rs];
+							NEXT_STATE.REGS[rt] = temp;
 							break;
 						}
 					case 0x34000000:
@@ -1185,14 +1197,6 @@ void print_instruction(uint32_t addr){
 				//Immediate MASK: 4x0000 4x1111 = 0000FFFF;
 				uint32_t im = ( 0x0000FFFF & ins  );
 
-				//I-Type Instruction
-				printf( "\nI-Type Instruction:" 
-						"\n-> OC: %x" 
-						"\n-> rs: %x" 
-						"\n-> rt: %x" 
-						"\n-> Immediate: %x\n",  
-						oc, rs, rt, im );
-
 				switch( oc )
 				{
 					case 0x20000000:
@@ -1228,7 +1232,7 @@ void print_instruction(uint32_t addr){
       						oc, rs, rt, im );
 							break;
 						}
-					case 0xAC00000:
+					case 0xAC000000:
 						{
 							//SW - Store Word
       				printf( "\nSW Instruction:" 
@@ -1239,9 +1243,20 @@ void print_instruction(uint32_t addr){
       						oc, rs, rt, im );
 							break;
 						}
-					case 0xA400000:
+					case 0xA4000000:
 						{
 							//SH - Store Halfword
+      				printf( "\nSH Instruction:" 
+      						"\n-> OC: %x" 
+      						"\n-> rs: %x" 
+      						"\n-> rt: %x" 
+      						"\n-> Immediate: %x\n",  
+      						oc, rs, rt, im );
+							break;
+						}
+					case 0x38000000:
+						{
+							//XORI - XOR w/
       				printf( "\nSH Instruction:" 
       						"\n-> OC: %x" 
       						"\n-> rs: %x" 
