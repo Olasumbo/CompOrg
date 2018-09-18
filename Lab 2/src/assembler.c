@@ -156,7 +156,11 @@ void getArg( char * rtn, FILE * fp )
 
 void encode_rtype( uint32_t opcode, uint32_t rs, uint32_t rt, uint32_t rd, uint32_t shamt, uint32_t funct)
 {
-
+    rs = rs << 21;
+    rt = rt << 16;
+    rd = rd << 11;    
+    shamt = shamt << 6;
+    uint32_t instruction = opcode + rs + rt + rd + shamt + funct;             
 }
 
 void encode_itype( uint32_t opcode, uint32_t target )
@@ -197,7 +201,7 @@ int main(int argc, char *argv[])
 	while( fscanf( fp, "%s", data) != EOF )
 	{
     printf( "\n%s", data );
-    uint32_t opcode = 0x0;
+    uint32_t opcode = 0x0, funct = 0x0;
     uint32_t rd = 0, rs = 0, rt = 0;
     char rd_s[32];
     char rs_s[32];
@@ -205,17 +209,20 @@ int main(int argc, char *argv[])
     
     if( strcmp( data, "add" ) == 0 )
     {
-      opcode = 0x00000020;
+      opcode = 0x00000000;
+      funct = 0x00000020;
       getArg( rd_s, fp );
       rd = getRegister( rd_s );
       getArg( rs_s, fp );      
       rs = getRegister( rs_s );
       getArg( rt_s, fp );      
       rt = getRegister( rt_s );
+      encode_rtype( opcode, rs, rt, rd, shamt, funct );
     }
     if( strcmp( data, "addu" ) == 0 )
-    {
-      opcode = 0x00000021;
+    {             
+      opcode = 0x00000000;
+      funct = 0x00000021;
       getArg( rd_s, fp );
       rd = getRegister( rd_s );
       getArg( rs_s, fp );      
@@ -224,8 +231,9 @@ int main(int argc, char *argv[])
       rt = getRegister( rt_s );
     }
     else if( strcmp( data, "addiu" ) == 0 )
-    {               
-      opcode = 0x00000020;
+    {         
+      opcode = 0x00000000;      
+      funct = 0x00000020;
       getArg( rd_s, fp );
       rd = getRegister( rd_s );
       getArg( rs_s, fp );      
