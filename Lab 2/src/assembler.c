@@ -154,6 +154,21 @@ void getArg( char * rtn, FILE * fp )
     return;                
 }
 
+void encode_rtype( uint32_t opcode, uint32_t rs, uint32_t rt, uint32_t rd, uint32_t shamt, uint32_t funct)
+{
+
+}
+
+void encode_itype( uint32_t opcode, uint32_t target )
+{
+
+}
+
+void encode_jtype( uint32_t opcode, uint32_t rs, uint32_t rt, uint32_t immediate )
+{
+
+}
+
 int main(int argc, char *argv[]) 
 {                              
 	printf("\n**************************\n");
