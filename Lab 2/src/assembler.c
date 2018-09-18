@@ -149,7 +149,7 @@ void getArg( char * rtn, FILE * fp )
     }    
     
     //TEST
-    printf( "\n-> %s", rtn );
+    //printf( "\n-> %s", rtn );
     
     return;                
 }
@@ -161,29 +161,59 @@ uint32_t encode_rtype( FILE * fp, uint32_t opcode, uint32_t shamt, uint32_t func
     char rs_s[32];
     char rt_s[32];
     
-    getArg( rd_s, fp );
-    rd = getRegister( rd_s );
+    getArg( rt_s, fp );
     getArg( rs_s, fp );      
-    rs = getRegister( rs_s );
-    getArg( rt_s, fp );      
+    getArg( rd_s, fp );      
+          
     rt = getRegister( rt_s );
+    rs = getRegister( rs_s );
+    rd = getRegister( rd_s );
 
     rs = rs << 21;
     rt = rt << 16;
     rd = rd << 11;    
-    shamt = shamt << 6;
+    shamt = shamt << 6;  
+    
+    printf( "\nR-TYPE: %x, %x, %x, %x, %x, %x \n", opcode, rs, rt, rd, shamt, funct );
     
     return ( opcode + rs + rt + rd + shamt + funct );             
 }
 
-uint32_t encode_itype( uint32_t opcode, uint32_t target )
+uint32_t encode_itype( FILE * fp, uint32_t opcode )
 {
-  return 1;
+    uint32_t rs = 0, rt = 0, im = 0;
+    char rs_s[32];
+    char rt_s[32];
+    char im_s[32];
+    
+    getArg( rt_s, fp );      
+    getArg( rs_s, fp );         
+    getArg( im_s, fp );  
+        
+    rt = getRegister( rt_s );
+    rs = getRegister( rs_s );
+    im = (uint32_t) strtol( im_s, NULL, 16 );
+
+    rs = rs << 21;
+    rt = rt << 16;  
+    
+    printf( "\nI-TYPE: %x, %x, %x, %x \n", opcode, rs, rt, im );
+    
+    return ( opcode + rs + rt + im );   
 }
 
-uint32_t encode_jtype( uint32_t opcode, uint32_t rs, uint32_t rt, uint32_t immediate )
+uint32_t encode_jtype( FILE * fp, uint32_t opcode )
 {
-  return 1;
+    uint32_t target = 0;
+    char target_s[32];
+    
+    getArg( target_s, fp );    
+        
+    target = getRegister( target_s );
+    
+    printf( "\nJ-TYPE: %x, %x\n", opcode, target );
+    
+    return ( opcode + target );   
 }
 
 int main(int argc, char *argv[]) 
@@ -240,13 +270,12 @@ int main(int argc, char *argv[])
     }
     else if( strcmp( data, "addiu" ) == 0 )
     {         
-      opcode = 0x00000000;
-      shamt = 0x00000000;      
-      funct = 0x00000020;
-      ins = encode_rtype( fp, opcode, shamt, funct );
+      opcode = 0x24000000;
+      ins = encode_itype( fp, opcode );
     }
     
-    fprintf( fw, "%u", ins );
+    printf( "INSTRUCTION: %x\n", ins);
+    fprintf( fw, "%x\n", ins );
       
 	}
 
