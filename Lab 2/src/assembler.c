@@ -152,30 +152,10 @@ void getArg( char * rtn, FILE * fp )
     //printf( "\n-> %s", rtn );
     
     return;                
-}
-
-uint32_t encode_rtype( FILE * fp, uint32_t opcode, uint32_t shamt, uint32_t funct, int zero_rd )
+}     
+      
+uint32_t encode_rtype( FILE * fp, uint32_t opcode, uint32_t rs, uint32_t rt, uint32_t rd, uint32_t shamt, uint32_t funct )
 {
-    uint32_t rd = 0, rs = 0, rt = 0;
-    char rd_s[32];
-    char rs_s[32];
-    char rt_s[32];
-    
-    getArg( rt_s, fp );
-    getArg( rs_s, fp );      
-          
-    rt = getRegister( rt_s );
-    rs = getRegister( rs_s );
-    
-    if( zero_rd == 0 )
-    { 
-      getArg( rd_s, fp );     
-      rd = getRegister( rd_s );
-    }
-    else
-    {
-      rd = 0;
-    }
 
     rs = rs << 21;
     rt = rt << 16;
@@ -185,6 +165,39 @@ uint32_t encode_rtype( FILE * fp, uint32_t opcode, uint32_t shamt, uint32_t func
     printf( "\nR-TYPE: %x, %x, %x, %x, %x, %x \n", opcode, rs, rt, rd, shamt, funct );
     
     return ( opcode + rs + rt + rd + shamt + funct );             
+}
+             
+uint32_t encode_rtype_mult( FILE * fp, uint32_t opcode, uint32_t shamt, uint32_t funct )
+{
+    uint32_t rd = 0, rs = 0, rt = 0;
+    char rs_s[32];
+    char rt_s[32];
+    
+    getArg( rs_s, fp );      
+    getArg( rt_s, fp );      
+              
+    rs = getRegister( rs_s );
+    rt = getRegister( rt_s );    
+      
+    return encode_rtype( fp, opcode, rs, rt, rd, shamt, funct );   
+}
+
+uint32_t encode_rtype_generic( FILE * fp, uint32_t opcode, uint32_t shamt, uint32_t funct )
+{
+    uint32_t rd = 0, rs = 0, rt = 0;
+    char rd_s[32];
+    char rs_s[32];
+    char rt_s[32];
+    
+    getArg( rs_s, fp );      
+    getArg( rt_s, fp );      
+    getArg( rd_s, fp );      
+              
+    rs = getRegister( rs_s );
+    rt = getRegister( rt_s );
+    rd = getRegister( rd_s );
+    
+    return encode_rtype( fp,opcode, rs, rt, rd, shamt, funct );             
 }
 
 uint32_t encode_itype( FILE * fp, uint32_t opcode )
@@ -241,14 +254,14 @@ int main(int argc, char *argv[])
 	/* Open program file. */
 	fp = fopen(prog_file, "r");
 	if (fp == NULL) {
-		printf("Error: Can't open program file %s\n", prog_file);
+		printf("Error: Can't open program file %s\n", prog_file );
 		exit(-1);
 	}
   
   /*Open writing file */
 	fw = fopen( "instruction.txt" , "w");
 	if (fp == NULL) {
-		printf("Error: Can't open writing file file %s\n", prog_file);
+		printf("Error: Can't open writing file file %s\n", prog_file );
 		exit(-1);
 	}
 
@@ -265,14 +278,14 @@ int main(int argc, char *argv[])
       opcode = 0x00000000;
       shamt = 0x00000000;
       funct = 0x00000020;
-      ins = encode_rtype( fp, opcode, shamt, funct, 0 );
+      ins = encode_rtype_generic( fp, opcode, shamt, funct );
     }
     if( strcmp( data, "addu" ) == 0 )
     {             
       opcode = 0x00000000;   
       shamt = 0x00000000;
       funct = 0x00000021;
-      ins = encode_rtype( fp, opcode, shamt, funct, 0 );
+      ins = encode_rtype_generic( fp, opcode, shamt, funct );
     }   
     else if( strcmp( data, "addi" ) == 0 )
     {         
@@ -289,22 +302,99 @@ int main(int argc, char *argv[])
       opcode = 0x00000000;
       shamt = 0x00000000;
       funct = 0x00000022;
-      ins = encode_rtype( fp, opcode, shamt, funct, 0 );
+      ins = encode_rtype_generic( fp, opcode, shamt, funct );
     }
     else if( strcmp( data, "subu" ) == 0 )
     {
       opcode = 0x00000000;
       shamt = 0x00000000;
       funct = 0x00000023;
-      ins = encode_rtype( fp, opcode, shamt, funct, 0 );
+      ins = encode_rtype_generic( fp, opcode, shamt, funct );
     }
     else if( strcmp( data, "mult" ) == 0 )
     {
       opcode = 0x00000000;
       shamt = 0x00000000;
-      funct = 0x0000002;
-      ins = encode_rtype( fp, opcode, shamt, funct, 1 );
+      funct = 0x00000028;
+      
+      ins = encode_rtype_mult( fp, opcode, shamt, funct );
     }
+    else if( strcmp( data, "multu" ) == 0 )
+    {
+      opcode = 0x00000000;
+      shamt = 0x00000000;
+      funct = 0x00000029;
+      ins = encode_rtype_mult( fp, opcode, shamt, funct );
+    }
+    else if( strcmp( data, "div" ) == 0 )
+    {
+      opcode = 0x00000000;
+      shamt = 0x00000000;
+      funct = 0x0000002A;
+      ins = encode_rtype_mult( fp, opcode, shamt, funct );
+    }
+    else if( strcmp( data, "divu" ) == 0 )
+    {
+      opcode = 0x00000000;
+      shamt = 0x00000000;
+      funct = 0x0000002B;
+      ins = encode_rtype_mult( fp, opcode, shamt, funct );
+    }
+    else if( strcmp( data, "and" ) == 0 )
+    {
+      opcode = 0x00000000;
+      shamt = 0x00000000;
+      funct = 0x00000023;
+      ins = encode_rtype_generic( fp, opcode, shamt, funct);
+    }
+    else if( strcmp( data, "andi" ) == 0 )
+    {         
+      opcode = 0x30000000;
+      ins = encode_itype( fp, opcode );
+    }  
+    else if( strcmp( data, "or" ) == 0 )
+    {
+      opcode = 0x00000000;
+      shamt = 0x00000000;
+      funct = 0x00000025;
+      ins = encode_rtype_generic( fp, opcode, shamt, funct );
+    }
+    else if( strcmp( data, "ori" ) == 0 )
+    {         
+      opcode = 0x34000000;
+      ins = encode_itype( fp, opcode );
+    } 
+    else if( strcmp( data, "xor" ) == 0 )
+    {
+      opcode = 0x00000000;
+      shamt = 0x00000000;
+      funct = 0x00000026;
+      ins = encode_rtype_generic( fp, opcode, shamt, funct );
+    }
+    else if( strcmp( data, "xori" ) == 0 )
+    {         
+      opcode = 0x38000000;
+      ins = encode_itype( fp, opcode );
+    }  
+    else if( strcmp( data, "nor" ) == 0 )
+    {
+      opcode = 0x00000000;
+      shamt = 0x00000000;
+      funct = 0x00000027;
+      ins = encode_rtype_generic( fp, opcode, shamt, funct);
+    }
+    else if( strcmp( data, "slt" ) == 0 )
+    {
+      opcode = 0x00000000;
+      shamt = 0x00000000;
+      funct = 0x0000002A;
+      ins = encode_rtype_generic( fp, opcode, shamt, funct );
+    }
+    else if( strcmp( data, "slti" ) == 0 )
+    {         
+      opcode = 0x28000000;
+      ins = encode_itype( fp, opcode );
+    }  
     
     printf( "INSTRUCTION: %x\n", ins);
     fprintf( fw, "%x\n", ins );
