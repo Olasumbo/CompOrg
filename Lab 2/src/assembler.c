@@ -154,23 +154,36 @@ void getArg( char * rtn, FILE * fp )
     return;                
 }
 
-void encode_rtype( uint32_t opcode, uint32_t rs, uint32_t rt, uint32_t rd, uint32_t shamt, uint32_t funct)
+uint32_t encode_rtype( FILE * fp, uint32_t opcode, uint32_t shamt, uint32_t funct)
 {
+    uint32_t rd = 0, rs = 0, rt = 0;
+    char rd_s[32];
+    char rs_s[32];
+    char rt_s[32];
+    
+    getArg( rd_s, fp );
+    rd = getRegister( rd_s );
+    getArg( rs_s, fp );      
+    rs = getRegister( rs_s );
+    getArg( rt_s, fp );      
+    rt = getRegister( rt_s );
+
     rs = rs << 21;
     rt = rt << 16;
     rd = rd << 11;    
     shamt = shamt << 6;
-    uint32_t instruction = opcode + rs + rt + rd + shamt + funct;             
+    
+    return ( opcode + rs + rt + rd + shamt + funct );             
 }
 
-void encode_itype( uint32_t opcode, uint32_t target )
+uint32_t encode_itype( uint32_t opcode, uint32_t target )
 {
-
+  return 1;
 }
 
-void encode_jtype( uint32_t opcode, uint32_t rs, uint32_t rt, uint32_t immediate )
+uint32_t encode_jtype( uint32_t opcode, uint32_t rs, uint32_t rt, uint32_t immediate )
 {
-
+  return 1;
 }
 
 int main(int argc, char *argv[]) 
@@ -187,7 +200,7 @@ int main(int argc, char *argv[])
   char prog_file[32];
 	strcpy(prog_file, argv[1]);
 
-	FILE * fp;
+	FILE * fp, * fw; 
 
 	/* Open program file. */
 	fp = fopen(prog_file, "r");
@@ -195,54 +208,49 @@ int main(int argc, char *argv[])
 		printf("Error: Can't open program file %s\n", prog_file);
 		exit(-1);
 	}
+  
+  /*Open writing file */
+	fw = fopen( "instruction.txt" , "w");
+	if (fp == NULL) {
+		printf("Error: Can't open writing file file %s\n", prog_file);
+		exit(-1);
+	}
 
   char data[32];
+  uint32_t ins = 0x0;
 
 	while( fscanf( fp, "%s", data) != EOF )
 	{
     printf( "\n%s", data );
-    uint32_t opcode = 0x0, funct = 0x0;
-    uint32_t rd = 0, rs = 0, rt = 0;
-    char rd_s[32];
-    char rs_s[32];
-    char rt_s[32];
+    uint32_t opcode = 0x0, shamt = 0x0, funct = 0x0;
     
     if( strcmp( data, "add" ) == 0 )
     {
       opcode = 0x00000000;
+      shamt = 0x00000000;
       funct = 0x00000020;
-      getArg( rd_s, fp );
-      rd = getRegister( rd_s );
-      getArg( rs_s, fp );      
-      rs = getRegister( rs_s );
-      getArg( rt_s, fp );      
-      rt = getRegister( rt_s );
-      encode_rtype( opcode, rs, rt, rd, shamt, funct );
+      ins = encode_rtype( fp, opcode, shamt, funct );
     }
     if( strcmp( data, "addu" ) == 0 )
     {             
-      opcode = 0x00000000;
+      opcode = 0x00000000;   
+      shamt = 0x00000000;
       funct = 0x00000021;
-      getArg( rd_s, fp );
-      rd = getRegister( rd_s );
-      getArg( rs_s, fp );      
-      rs = getRegister( rs_s );
-      getArg( rt_s, fp );      
-      rt = getRegister( rt_s );
+      ins = encode_rtype( fp, opcode, shamt, funct );
     }
     else if( strcmp( data, "addiu" ) == 0 )
     {         
-      opcode = 0x00000000;      
+      opcode = 0x00000000;
+      shamt = 0x00000000;      
       funct = 0x00000020;
-      getArg( rd_s, fp );
-      rd = getRegister( rd_s );
-      getArg( rs_s, fp );      
-      rs = getRegister( rs_s );
-      getArg( rt_s, fp );      
-      rt = getRegister( rt_s );
-    }  
+      ins = encode_rtype( fp, opcode, shamt, funct );
+    }
+    
+    fprintf( fw, "%u", ins );
+      
 	}
 
+	fclose( fw );	
 	fclose( fp );	
 
 	return 0;
