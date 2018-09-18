@@ -1254,6 +1254,17 @@ void print_instruction(uint32_t addr){
       						oc, rs, rt, im );
 							break;
 						}
+					case 0x38000000:
+						{
+							//XORI - XOR w/
+      				printf( "\nSH Instruction:" 
+      						"\n-> OC: %x" 
+      						"\n-> rs: %x" 
+      						"\n-> rt: %x" 
+      						"\n-> Immediate: %x\n",  
+      						oc, rs, rt, im );
+							break;
+						}
 					case 0x8C000000:
 						{	
 							//LW - Load Word
