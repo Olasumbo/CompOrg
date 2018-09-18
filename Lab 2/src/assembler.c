@@ -154,7 +154,7 @@ void getArg( char * rtn, FILE * fp )
     return;                
 }
 
-uint32_t encode_rtype( FILE * fp, uint32_t opcode, uint32_t shamt, uint32_t funct)
+uint32_t encode_rtype( FILE * fp, uint32_t opcode, uint32_t shamt, uint32_t funct, int zero_rd )
 {
     uint32_t rd = 0, rs = 0, rt = 0;
     char rd_s[32];
@@ -163,11 +163,19 @@ uint32_t encode_rtype( FILE * fp, uint32_t opcode, uint32_t shamt, uint32_t func
     
     getArg( rt_s, fp );
     getArg( rs_s, fp );      
-    getArg( rd_s, fp );      
           
     rt = getRegister( rt_s );
     rs = getRegister( rs_s );
-    rd = getRegister( rd_s );
+    
+    if( zero_rd == 0 )
+    { 
+      getArg( rd_s, fp );     
+      rd = getRegister( rd_s );
+    }
+    else
+    {
+      rd = 0;
+    }
 
     rs = rs << 21;
     rt = rt << 16;
@@ -208,8 +216,6 @@ uint32_t encode_jtype( FILE * fp, uint32_t opcode )
     char target_s[32];
     
     getArg( target_s, fp );    
-        
-    target = getRegister( target_s );
     
     printf( "\nJ-TYPE: %x, %x\n", opcode, target );
     
@@ -259,19 +265,45 @@ int main(int argc, char *argv[])
       opcode = 0x00000000;
       shamt = 0x00000000;
       funct = 0x00000020;
-      ins = encode_rtype( fp, opcode, shamt, funct );
+      ins = encode_rtype( fp, opcode, shamt, funct, 0 );
     }
     if( strcmp( data, "addu" ) == 0 )
     {             
       opcode = 0x00000000;   
       shamt = 0x00000000;
       funct = 0x00000021;
-      ins = encode_rtype( fp, opcode, shamt, funct );
+      ins = encode_rtype( fp, opcode, shamt, funct, 0 );
+    }   
+    else if( strcmp( data, "addi" ) == 0 )
+    {         
+      opcode = 0x20000000;
+      ins = encode_itype( fp, opcode );
     }
     else if( strcmp( data, "addiu" ) == 0 )
     {         
       opcode = 0x24000000;
       ins = encode_itype( fp, opcode );
+    }  
+    else if( strcmp( data, "sub" ) == 0 )
+    {
+      opcode = 0x00000000;
+      shamt = 0x00000000;
+      funct = 0x00000022;
+      ins = encode_rtype( fp, opcode, shamt, funct, 0 );
+    }
+    else if( strcmp( data, "subu" ) == 0 )
+    {
+      opcode = 0x00000000;
+      shamt = 0x00000000;
+      funct = 0x00000023;
+      ins = encode_rtype( fp, opcode, shamt, funct, 0 );
+    }
+    else if( strcmp( data, "mult" ) == 0 )
+    {
+      opcode = 0x00000000;
+      shamt = 0x00000000;
+      funct = 0x0000002;
+      ins = encode_rtype( fp, opcode, shamt, funct, 1 );
     }
     
     printf( "INSTRUCTION: %x\n", ins);
