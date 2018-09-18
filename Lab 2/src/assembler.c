@@ -519,6 +519,73 @@ int main(int argc, char *argv[])
       funct = 0x00000002;
       ins = encode_rtype_shift_move( fp, opcode, funct );
     }
+else if( strcmp( data, "jalr" ) == 0 )
+    {
+      opcode = 0x00000000;
+      shamt = 0x00000000;
+      funct = 0x00000009;
+      ins = encode_rtype( fp, opcode, shamt, funct, 0, 0 );
+    }
+else if( strcmp( data, "jal" ) == 0 )
+    {
+      opcode = 0x0C000000;
+      ins = encode_jtype( fp, opcode );
+    }
+else if( strcmp( data, "jr" ) == 0 )
+    {
+      opcode = 0x00000000;
+      shamt = 0x00000000;
+      funct = 0x00000008;
+      ins = encode_rtype( fp, opcode, shamt, funct, 1, 1 );
+    }
+else if( strcmp( data, "j" ) == 0 )
+    {
+      opcode = 0x04000000;
+      ins = encode_jtype( fp, opcode );
+    }
+else if( strcmp( data, "beq" ) == 0 )
+    {
+      opcode = 0x10000000;
+      ins = encode_itype( fp, opcode );
+    }
+else if( strcmp( data, "bne" ) == 0 )
+    {
+      opcode = 0x14000000;
+      ins = encode_itype( fp, opcode );
+    }
+else if( strcmp( data, "blez" ) == 0 )
+    {
+	//special case
+      opcode = 0x04000000;
+	rt = 0x0;
+      ins = encode_itype_branch( fp, opcode, rt );
+    }
+else if( strcmp( data, "bltz" ) == 0 )
+    {
+	//special case
+      opcode = 0x18000000;
+	rt = 0x0; 
+      ins = encode_itype_branch( fp, opcode, rt );
+    }  
+else if( strcmp( data, "bgez" ) == 0 )
+    {
+	//special case
+      opcode = 0x04000000;
+	rt = 0x1;
+      ins = encode_itype_branch( fp, opcode, rt );
+    }
+else if( strcmp( data, "bgtz" ) == 0 )
+    {
+	//special case
+      opcode = 0x1C000000;
+	rt = 0x0;
+      ins = encode_itype_branch( fp, opcode, rt );
+    }
+else if( strcmp( data, "mflo" ) == 0 )
+    {
+      opcode = 0x04000000;
+      ins = encode_itype( fp, opcode );
+    }
     
     printf( "INSTRUCTION: %x\n", ins);
     fprintf( fw, "%x\n", ins );
