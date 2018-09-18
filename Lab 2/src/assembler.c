@@ -181,6 +181,35 @@ uint32_t encode_rtype_mult( FILE * fp, uint32_t opcode, uint32_t shamt, uint32_t
       
     return encode_rtype( fp, opcode, rs, rt, rd, shamt, funct );   
 }
+             
+uint32_t encode_rtype_move( FILE * fp, uint32_t opcode, uint32_t shamt, uint32_t funct )
+{
+    uint32_t rd = 0, rs = 0, rt = 0;
+    char rd_s[32];
+    
+    getArg( rd_s, fp );      
+              
+    rd = getRegister( rd_s );    
+      
+    return encode_rtype( fp, opcode, rs, rt, rd, shamt, funct );   
+}
+             
+uint32_t encode_rtype_shift( FILE * fp, uint32_t opcode, uint32_t funct )
+{
+    uint32_t rd = 0, rs = 0, rt = 0, shamt = 0;
+    char rs_s[32];
+    char rd_s[32];
+    char shamt_s[32];
+    
+    getArg( rs_s, fp );      
+    getArg( rd_s, fp );    
+    getArg( shamt_s, fp );          
+              
+    rs = getRegister( rs_s );
+    rd = getRegister( rd_s );    
+      
+    return encode_rtype( fp, opcode, rs, rt, rd, shamt, funct );   
+}
 
 uint32_t encode_rtype_generic( FILE * fp, uint32_t opcode, uint32_t shamt, uint32_t funct )
 {
@@ -198,6 +227,47 @@ uint32_t encode_rtype_generic( FILE * fp, uint32_t opcode, uint32_t shamt, uint3
     rd = getRegister( rd_s );
     
     return encode_rtype( fp,opcode, rs, rt, rd, shamt, funct );             
+}
+
+uint32_t encode_itype_branch( FILE * fp, uint32_t opcode, uint32_t bgez )
+{
+    uint32_t rs = 0, rt = 0, im = 0;
+    char rs_s[32];
+    char im_s[32];
+        
+    getArg( rs_s, fp );         
+    getArg( im_s, fp );  
+        
+    rt = bgez;
+    rs = getRegister( rs_s );
+    im = (uint32_t) strtol( im_s, NULL, 16 );
+
+    rs = rs << 21;
+    rt = rt << 16;  
+    
+    printf( "\nI-TYPE(branch): %x, %x, %x, %x \n", opcode, rs, rt, im );
+    
+    return ( opcode + rs + rt + im );   
+}
+
+uint32_t encode_itype_loadim( FILE * fp, uint32_t opcode )
+{
+    uint32_t rs = 0, rt = 0, im = 0;
+    char rt_s[32];
+    char im_s[32];
+        
+    getArg( rt_s, fp );         
+    getArg( im_s, fp );  
+        
+    rt = getRegister( rt_s );
+    im = (uint32_t) strtol( im_s, NULL, 16 );
+
+    rs = rs << 21;
+    rt = rt << 16;  
+    
+    printf( "\nI-TYPE(LoadIm): %x, %x, %x, %x \n", opcode, rs, rt, im );
+    
+    return ( opcode + rs + rt + im );   
 }
 
 uint32_t encode_itype( FILE * fp, uint32_t opcode )
@@ -394,7 +464,61 @@ int main(int argc, char *argv[])
     {         
       opcode = 0x28000000;
       ins = encode_itype( fp, opcode );
+    }     
+    else if( strcmp( data, "sll" ) == 0 )
+    {
+      opcode = 0x00000000;
+      funct = 0x00000000;
+      ins = encode_rtype_shift( fp, opcode, funct );
+    }
+    else if( strcmp( data, "srl" ) == 0 )
+    {
+      opcode = 0x00000000;
+      funct = 0x00000002;
+      ins = encode_rtype_shift( fp, opcode, funct );
+    }
+    else if( strcmp( data, "sra" ) == 0 )
+    {
+      opcode = 0x00000000;
+      funct = 0x00000003;
+      ins = encode_rtype_shift( fp, opcode, funct );
+    }
+    else if( strcmp( data, "lw" ) == 0 )
+    {         
+      opcode = 0x8C000000;
+      ins = encode_itype( fp, opcode );
     }  
+    else if( strcmp( data, "lb" ) == 0 )
+    {         
+      opcode = 0x80000000;
+      ins = encode_itype( fp, opcode );
+    }  
+    else if( strcmp( data, "lh" ) == 0 )
+    {         
+      opcode = 0x84000000;
+      ins = encode_itype_loadim( fp, opcode );
+    }  
+    else if( strcmp( data, "sw" ) == 0 )
+    {         
+      opcode = 0xAC000000;
+      ins = encode_itype( fp, opcode );
+    }  
+    else if( strcmp( data, "sb" ) == 0 )
+    {         
+      opcode = 0xA0000000;
+      ins = encode_itype( fp, opcode );
+    }  
+    else if( strcmp( data, "sh" ) == 0 )
+    {         
+      opcode = 0xA4000000;
+      ins = encode_itype( fp, opcode );
+    }  
+    else if( strcmp( data, "mfhi" ) == 0 )
+    {
+      opcode = 0x00000000;
+      funct = 0x00000002;
+      ins = encode_rtype_shift_move( fp, opcode, funct );
+    }
     
     printf( "INSTRUCTION: %x\n", ins);
     fprintf( fw, "%x\n", ins );
