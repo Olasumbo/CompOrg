@@ -182,9 +182,9 @@ uint32_t encode_rtype_mult( FILE * fp, uint32_t opcode, uint32_t shamt, uint32_t
     return encode_rtype( fp, opcode, rs, rt, rd, shamt, funct );   
 }
              
-uint32_t encode_rtype_move( FILE * fp, uint32_t opcode, uint32_t shamt, uint32_t funct )
+uint32_t encode_rtype_move( FILE * fp, uint32_t opcode, uint32_t funct )
 {
-    uint32_t rd = 0, rs = 0, rt = 0;
+    uint32_t rd = 0, rs = 0, rt = 0, shamt = 0;
     char rd_s[32];
     
     getArg( rd_s, fp );      
@@ -229,6 +229,16 @@ uint32_t encode_rtype_generic( FILE * fp, uint32_t opcode, uint32_t shamt, uint3
     return encode_rtype( fp,opcode, rs, rt, rd, shamt, funct );             
 }
 
+uint32_t encode_itype( FILE * fp, uint32_t opcode, uint32_t rs, uint32_t rt, uint32_t im )
+{
+    rs = rs << 21;
+    rt = rt << 16;  
+    
+    printf( "\nI-TYPE: %x, %x, %x, %x \n", opcode, rs, rt, im );
+    
+    return ( opcode + rs + rt + im );   
+}
+
 uint32_t encode_itype_branch( FILE * fp, uint32_t opcode, uint32_t bgez )
 {
     uint32_t rs = 0, rt = 0, im = 0;
@@ -247,7 +257,7 @@ uint32_t encode_itype_branch( FILE * fp, uint32_t opcode, uint32_t bgez )
     
     printf( "\nI-TYPE(branch): %x, %x, %x, %x \n", opcode, rs, rt, im );
     
-    return ( opcode + rs + rt + im );   
+    return encode_itype( fp, opcode, rs, rt, im );   
 }
 
 uint32_t encode_itype_loadim( FILE * fp, uint32_t opcode )
@@ -267,10 +277,10 @@ uint32_t encode_itype_loadim( FILE * fp, uint32_t opcode )
     
     printf( "\nI-TYPE(LoadIm): %x, %x, %x, %x \n", opcode, rs, rt, im );
     
-    return ( opcode + rs + rt + im );   
+    return encode_itype( fp, opcode, rs, rt, im );   
 }
 
-uint32_t encode_itype( FILE * fp, uint32_t opcode )
+uint32_t encode_itype_generic( FILE * fp, uint32_t opcode )
 {
     uint32_t rs = 0, rt = 0, im = 0;
     char rs_s[32];
@@ -284,13 +294,8 @@ uint32_t encode_itype( FILE * fp, uint32_t opcode )
     rt = getRegister( rt_s );
     rs = getRegister( rs_s );
     im = (uint32_t) strtol( im_s, NULL, 16 );
-
-    rs = rs << 21;
-    rt = rt << 16;  
     
-    printf( "\nI-TYPE: %x, %x, %x, %x \n", opcode, rs, rt, im );
-    
-    return ( opcode + rs + rt + im );   
+    return encode_itype( fp, opcode, rs, rt, im );   
 }
 
 uint32_t encode_jtype( FILE * fp, uint32_t opcode )
@@ -360,12 +365,12 @@ int main(int argc, char *argv[])
     else if( strcmp( data, "addi" ) == 0 )
     {         
       opcode = 0x20000000;
-      ins = encode_itype( fp, opcode );
+      ins = encode_itype_generic( fp, opcode );
     }
     else if( strcmp( data, "addiu" ) == 0 )
     {         
       opcode = 0x24000000;
-      ins = encode_itype( fp, opcode );
+      ins = encode_itype_generic( fp, opcode );
     }  
     else if( strcmp( data, "sub" ) == 0 )
     {
@@ -420,7 +425,7 @@ int main(int argc, char *argv[])
     else if( strcmp( data, "andi" ) == 0 )
     {         
       opcode = 0x30000000;
-      ins = encode_itype( fp, opcode );
+      ins = encode_itype_generic( fp, opcode );
     }  
     else if( strcmp( data, "or" ) == 0 )
     {
@@ -432,7 +437,7 @@ int main(int argc, char *argv[])
     else if( strcmp( data, "ori" ) == 0 )
     {         
       opcode = 0x34000000;
-      ins = encode_itype( fp, opcode );
+      ins = encode_itype_generic( fp, opcode );
     } 
     else if( strcmp( data, "xor" ) == 0 )
     {
@@ -444,7 +449,7 @@ int main(int argc, char *argv[])
     else if( strcmp( data, "xori" ) == 0 )
     {         
       opcode = 0x38000000;
-      ins = encode_itype( fp, opcode );
+      ins = encode_itype_generic( fp, opcode );
     }  
     else if( strcmp( data, "nor" ) == 0 )
     {
@@ -463,7 +468,7 @@ int main(int argc, char *argv[])
     else if( strcmp( data, "slti" ) == 0 )
     {         
       opcode = 0x28000000;
-      ins = encode_itype( fp, opcode );
+      ins = encode_itype_generic( fp, opcode );
     }     
     else if( strcmp( data, "sll" ) == 0 )
     {
@@ -486,12 +491,12 @@ int main(int argc, char *argv[])
     else if( strcmp( data, "lw" ) == 0 )
     {         
       opcode = 0x8C000000;
-      ins = encode_itype( fp, opcode );
+      ins = encode_itype_generic( fp, opcode );
     }  
     else if( strcmp( data, "lb" ) == 0 )
     {         
       opcode = 0x80000000;
-      ins = encode_itype( fp, opcode );
+      ins = encode_itype_generic( fp, opcode );
     }  
     else if( strcmp( data, "lh" ) == 0 )
     {         
@@ -501,30 +506,30 @@ int main(int argc, char *argv[])
     else if( strcmp( data, "sw" ) == 0 )
     {         
       opcode = 0xAC000000;
-      ins = encode_itype( fp, opcode );
+      ins = encode_itype_generic( fp, opcode );
     }  
     else if( strcmp( data, "sb" ) == 0 )
     {         
       opcode = 0xA0000000;
-      ins = encode_itype( fp, opcode );
+      ins = encode_itype_generic( fp, opcode );
     }  
     else if( strcmp( data, "sh" ) == 0 )
     {         
       opcode = 0xA4000000;
-      ins = encode_itype( fp, opcode );
+      ins = encode_itype_generic( fp, opcode );
     }  
     else if( strcmp( data, "mfhi" ) == 0 )
     {
       opcode = 0x00000000;
       funct = 0x00000002;
-      ins = encode_rtype_shift_move( fp, opcode, funct );
+      ins = encode_rtype_move( fp, opcode, funct );
     }
 else if( strcmp( data, "jalr" ) == 0 )
     {
       opcode = 0x00000000;
       shamt = 0x00000000;
       funct = 0x00000009;
-      ins = encode_rtype( fp, opcode, shamt, funct, 0, 0 );
+      ins = encode_rtype_generic( fp, opcode, shamt, funct );
     }
 else if( strcmp( data, "jal" ) == 0 )
     {
@@ -536,7 +541,7 @@ else if( strcmp( data, "jr" ) == 0 )
       opcode = 0x00000000;
       shamt = 0x00000000;
       funct = 0x00000008;
-      ins = encode_rtype( fp, opcode, shamt, funct, 1, 1 );
+      ins = encode_rtype_generic( fp, opcode, shamt, funct );
     }
 else if( strcmp( data, "j" ) == 0 )
     {
@@ -546,45 +551,47 @@ else if( strcmp( data, "j" ) == 0 )
 else if( strcmp( data, "beq" ) == 0 )
     {
       opcode = 0x10000000;
-      ins = encode_itype( fp, opcode );
+      ins = encode_itype_generic( fp, opcode );
     }
 else if( strcmp( data, "bne" ) == 0 )
     {
       opcode = 0x14000000;
-      ins = encode_itype( fp, opcode );
+      ins = encode_itype_generic( fp, opcode );
     }
 else if( strcmp( data, "blez" ) == 0 )
     {
 	//special case
       opcode = 0x04000000;
-	rt = 0x0;
-      ins = encode_itype_branch( fp, opcode, rt );
+      ins = encode_itype_branch( fp, opcode, 0x0 );
     }
 else if( strcmp( data, "bltz" ) == 0 )
     {
 	//special case
       opcode = 0x18000000;
-	rt = 0x0; 
+	    uint32_t rt = 0x0; 
       ins = encode_itype_branch( fp, opcode, rt );
     }  
 else if( strcmp( data, "bgez" ) == 0 )
     {
 	//special case
       opcode = 0x04000000;
-	rt = 0x1;
+      uint32_t rt = 0x1;
       ins = encode_itype_branch( fp, opcode, rt );
     }
 else if( strcmp( data, "bgtz" ) == 0 )
     {
-	//special case
-      opcode = 0x1C000000;
-	rt = 0x0;
-      ins = encode_itype_branch( fp, opcode, rt );
+        opcode = 0x1C000000;
+  	    uint32_t rt = 0x0;
+        ins = encode_itype_branch( fp, opcode, rt );
     }
-else if( strcmp( data, "mflo" ) == 0 )
+    else if( strcmp( data, "mflo" ) == 0 )
     {
-      opcode = 0x04000000;
-      ins = encode_itype( fp, opcode );
+        opcode = 0x04000000;
+        ins = encode_itype_generic( fp, opcode );
+    }
+    else if( strcmp( data, "syscall" ) == 0 )
+    {
+        ins = 0xC;
     }
     
     printf( "INSTRUCTION: %x\n", ins);

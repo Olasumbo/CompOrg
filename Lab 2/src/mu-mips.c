@@ -692,7 +692,8 @@ void handle_instruction()
 						}	
 					case 0x80000000:
 						{	
-							//LB - Load Byte
+							//LB - Load Byte  
+							puts("LOAD BYTE" );
 							//Extend sign of immediate register to get memory offset
 							uint32_t offset = extend_sign( im );
 							//Create a effective memory address
@@ -704,6 +705,7 @@ void handle_instruction()
 					case 0x84000000:
 						{	
 							//LH - Load Halfword
+							puts("LOAD HALFWORD" );
 							//Extend sign of immediate register to get memory offset
 							uint32_t offset = extend_sign( im );
 							//Create a effective memory address
@@ -715,7 +717,8 @@ void handle_instruction()
 						}
 					case 0x30000000:
 						//ANDI
-						{
+						{                                           
+							puts("ANDI" );
 							///zero extend immediate then and it with rs
 							uint32_t temp = (im & 0x0000FFFF) & CURRENT_STATE.REGS[rs];	
 							NEXT_STATE.REGS[rt] = temp;
@@ -724,13 +727,15 @@ void handle_instruction()
 					case 0x3C000000:
 						{	
 							//LUI - Load Upper Immediate
+							puts("LOAD IMMEDIATE UPPER" );
 							//Load data from instruction into rt register
 							NEXT_STATE.REGS[rt] = (im << 16);
 							break;
 						}
 					case 0x10000000:	
 						{
-							//BEG
+							//BEG    
+							puts("BRANCH EQUAL" );
 							uint32_t target = extend_sign( im ) << 2;
 							if( CURRENT_STATE.REGS[rs] == CURRENT_STATE.REGS[rt] )
 							{
@@ -740,7 +745,8 @@ void handle_instruction()
 						}
 					case 0x14000000:	
 						{
-							//BNE - Branch on Not Equal
+							//BNE - Branch on Not Equal   
+							puts("BRANCH NOT EQUAL" );
 							uint32_t target = extend_sign( im ) << 2;
 							if( CURRENT_STATE.REGS[rs] != CURRENT_STATE.REGS[rt] )
 							{
@@ -750,7 +756,8 @@ void handle_instruction()
 						}
 					case 0x18000000:	
 						{
-							//BLEZ - Branch on Less Than or Equal to Zero
+							//BLEZ - Branch on Less Than or Equal to Zero    
+							puts("Branch on Less Than or Equal to Zero" );
 							uint32_t target = extend_sign( im ) << 2;
 							if( ( CURRENT_STATE.REGS[rs] & 0x80000000 ) || ( CURRENT_STATE.REGS[rt] == 0 ) )
 							{
@@ -760,7 +767,8 @@ void handle_instruction()
 						}
 					case 0x1C000000:	
 						{
-							//BGTZ - Branch on Greater Than Zero
+							//BGTZ - Branch on Greater Than Zero     
+							puts("BGTZ" );
 							uint32_t target = extend_sign( im ) << 2;
 							if( !( CURRENT_STATE.REGS[rs] & 0x80000000 ) || ( CURRENT_STATE.REGS[rt] != 0 ) )
 							{
@@ -770,7 +778,8 @@ void handle_instruction()
 						}
 					case 0x38000000:
 						//XORI
-						{
+						{                                                   
+							puts("XORI" );
 							///zero extend immediate then and it with rs
 							uint32_t temp = (im & 0x0000FFFF) ^ CURRENT_STATE.REGS[rs];
 							NEXT_STATE.REGS[rt] = temp;
@@ -778,7 +787,8 @@ void handle_instruction()
 						}
 					case 0x34000000:
 						//ORI
-						{
+						{           
+							puts("ORI" );
 							///zero extend immediate then and it with rs
 							uint32_t temp = (im & 0x0000FFFF) | CURRENT_STATE.REGS[rs];	
 							NEXT_STATE.REGS[rt] = temp;
@@ -786,12 +796,13 @@ void handle_instruction()
 						}
 					case 0x04000000:	
 						{
-							//REGIMM
+							//REGIMM        
 							switch( rt )
 							{
 								case 0x00000000:
 									{
-										//BLTZ - Branch on Less Than Zero
+										//BLTZ - Branch on Less Than Zero      
+						      	puts("BLTZ" );
 										uint32_t target = extend_sign( im ) << 2;
 										if( ( CURRENT_STATE.REGS[rs] & 0x80000000 ) )
 										{
@@ -800,7 +811,8 @@ void handle_instruction()
 									}
 								case 0x00000001:
 									{
-										//BGEZ - Branch on Greater Than or Equal to Zero
+										//BGEZ - Branch on Greater Than or Equal to Zero           
+						      	puts("BGEZ" );
 										uint32_t target = extend_sign( im ) << 2;
 										if( !( CURRENT_STATE.REGS[rs] & 0x80000000 ) )
 										{
