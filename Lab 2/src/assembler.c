@@ -334,7 +334,7 @@ int main(int argc, char *argv[])
 	}
   
   /*Open writing file */
-	fw = fopen( "instruction.txt" , "w");
+	fw = fopen( "instruction.in" , "w");
 	if (fp == NULL) {
 		printf("Error: Can't open writing file file %s\n", prog_file );
 		exit(-1);
