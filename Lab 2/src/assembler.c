@@ -239,6 +239,42 @@ uint32_t encode_itype( FILE * fp, uint32_t opcode, uint32_t rs, uint32_t rt, uin
     return ( opcode + rs + rt + im );   
 }
 
+uint32_t encode_itype_store( FILE * fp, uint32_t opcode )
+{
+    uint32_t rs = 0, rt = 0, im = 0;
+    char rt_s[32];
+    char pt2[32];
+    char * im_s, *base_s;
+        
+    getArg( rt_s, fp );         
+    getArg( pt2, fp );  
+    
+    //Extract register from code (miserable)
+    char * search = "(";
+    char * search2 = ")";
+    im_s = strtok( pt2, search );
+    base_s = strtok( NULL, search2 );
+      
+    //Base  
+    rs = getRegister( base_s );
+    
+    //rt
+    rt = getRegister( rt_s );
+    
+    //Convert IMmediate to hex uint32_t
+    im = (uint32_t) strtol( im_s, NULL, 16 );
+    
+    //STORE TEST
+    /*printf( "\nSTORE:" 
+            "\n-> %s" 
+            "\n-> %s" 
+            "\n-> %x\n"
+            , base_s, rt_s, im
+    ); */
+    
+    return encode_itype( fp, opcode, rs, rt, im );   
+}
+
 uint32_t encode_itype_branch( FILE * fp, uint32_t opcode, uint32_t bgez )
 {
     uint32_t rs = 0, rt = 0, im = 0;
@@ -251,11 +287,6 @@ uint32_t encode_itype_branch( FILE * fp, uint32_t opcode, uint32_t bgez )
     rt = bgez;
     rs = getRegister( rs_s );
     im = (uint32_t) strtol( im_s, NULL, 16 );
-
-    rs = rs << 21;
-    rt = rt << 16;  
-    
-    printf( "\nI-TYPE(branch): %x, %x, %x, %x \n", opcode, rs, rt, im );
     
     return encode_itype( fp, opcode, rs, rt, im );   
 }
@@ -271,11 +302,6 @@ uint32_t encode_itype_loadim( FILE * fp, uint32_t opcode )
         
     rt = getRegister( rt_s );
     im = (uint32_t) strtol( im_s, NULL, 16 );
-
-    rs = rs << 21;
-    rt = rt << 16;  
-    
-    printf( "\nI-TYPE(LoadIm): %x, %x, %x, %x \n", opcode, rs, rt, im );
     
     return encode_itype( fp, opcode, rs, rt, im );   
 }
@@ -342,10 +368,11 @@ int main(int argc, char *argv[])
 
   char data[32];
   uint32_t ins = 0x0;
+  int i = 0;
 
 	while( fscanf( fp, "%s", data) != EOF )
 	{
-    printf( "\n%s", data );
+    printf( "\n%d : %s", ++i, data );
     uint32_t opcode = 0x0, shamt = 0x0, funct = 0x0;
     
     if( strcmp( data, "add" ) == 0 )
@@ -491,32 +518,32 @@ int main(int argc, char *argv[])
     else if( strcmp( data, "lw" ) == 0 )
     {         
       opcode = 0x8C000000;
-      ins = encode_itype_generic( fp, opcode );
+      ins = encode_itype_store( fp, opcode );
     }  
     else if( strcmp( data, "lb" ) == 0 )
     {         
       opcode = 0x80000000;
-      ins = encode_itype_generic( fp, opcode );
+      ins = encode_itype_store( fp, opcode );
     }  
     else if( strcmp( data, "lh" ) == 0 )
     {         
       opcode = 0x84000000;
-      ins = encode_itype_loadim( fp, opcode );
+      ins = encode_itype_store( fp, opcode );
     }  
     else if( strcmp( data, "sw" ) == 0 )
     {         
       opcode = 0xAC000000;
-      ins = encode_itype_generic( fp, opcode );
+      ins = encode_itype_store( fp, opcode );
     }  
     else if( strcmp( data, "sb" ) == 0 )
     {         
       opcode = 0xA0000000;
-      ins = encode_itype_generic( fp, opcode );
+      ins = encode_itype_store( fp, opcode );
     }  
     else if( strcmp( data, "sh" ) == 0 )
     {         
       opcode = 0xA4000000;
-      ins = encode_itype_generic( fp, opcode );
+      ins = encode_itype_store( fp, opcode );
     }  
     else if( strcmp( data, "mfhi" ) == 0 )
     {
@@ -592,6 +619,7 @@ else if( strcmp( data, "bgtz" ) == 0 )
     else if( strcmp( data, "syscall" ) == 0 )
     {
         ins = 0xC;
+        printf("\n");
     }
     
     printf( "INSTRUCTION: %x\n", ins);

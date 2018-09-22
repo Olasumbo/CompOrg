@@ -808,8 +808,9 @@ void handle_instruction()
 										{
 											jump = target;
 										}
+                    break;
 									}
-								case 0x00000001:
+								  case 0x00000001:
 									{
 										//BGEZ - Branch on Greater Than or Equal to Zero           
 						      	puts("BGEZ" );
@@ -818,6 +819,7 @@ void handle_instruction()
 										{
 											jump = target;
 										}
+                    break;
 									}
 							}
 							break;

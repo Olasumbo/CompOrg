@@ -1,0 +1,50 @@
+addiu $t5, $zero, 0x1001
+sll $t5, $t5, 0x04
+addiu $t6, $zero, 5
+sw $t6, 0x0($t5)
+addiu $t6, $zero, 3
+sw $t6, 0x04($t5)
+addiu $t6, $zero, 6
+sw $t6, 0x08($t5)
+addiu $t6, $zero, 8
+sw $t6, 0x0C($t5)
+addiu $t6, $zero, 9
+sw $t6, 0x10($t5)
+addiu $t6, $zero, 1
+sw $t6, 0x14($t5)
+addiu $t6, $zero, 4
+sw $t6, 0x18($t5)
+addiu $t6, $zero, 7
+sw $t6, 0x1C($t5)
+addiu $t6, $zero, 2
+sw $t6, 0x20($t5)
+addiu $t6, $zero, 10
+sw $t6, 0x24($t5)
+add $t7, $zero, $t5
+addiu $a1, $zero, 0x0						
+addiu $a2, $zero, 0x0 					
+addiu $t4, $zero, 0x09 			
+addiu $a0, $zero, 0x0 			
+addiu $a2, $zero, 0x0 				
+subu $t3, $t4, $a1
+addiu $f16, $zero, 0x01
+subu $t3, $t3, $f16
+lw $a3, 0x0($t7)
+lw $t0, 0x04($t7)
+sub $t1, $a3, $t0
+addiu $a2, $a2, 0x01 						
+add $t8, $zero, $t7
+addiu $t7, $t7, 0x4
+bgtz $t1, 8							
+bne $a2, $t3, 0xFFF7
+beq $a0, $zero, 4
+addiu $t7, $t5, 0x0 
+addiu $a1, $a1, 0x01
+bne $t4, $a1, 0xFFF0
+addiu $v0, $zero, 0xA
+syscall
+addiu $a0, $zero, 0x01
+sw $t0, 0x0($t8)
+sw $a3, 0x04($t8)
+j 0xFFF6
+syscall
