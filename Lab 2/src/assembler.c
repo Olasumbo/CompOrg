@@ -217,10 +217,10 @@ uint32_t encode_rtype_generic( FILE * fp, uint32_t opcode, uint32_t shamt, uint3
     char rd_s[32];
     char rs_s[32];
     char rt_s[32];
-    
+                             
+    getArg( rd_s, fp );      
     getArg( rs_s, fp );      
     getArg( rt_s, fp );      
-    getArg( rd_s, fp );      
               
     rs = getRegister( rs_s );
     rt = getRegister( rt_s );
