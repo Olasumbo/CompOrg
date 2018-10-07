@@ -838,17 +838,19 @@ char* convert_Reg(uint32_t reg){
 void print_instruction(uint32_t addr);
 
 void print_program(){
-	int i;
-	uint32_t addr;
+	//int i;
+	//uint32_t addr;
 
-	for(i=0; i<PROGRAM_SIZE; i++){
+  show_pipeline();
+
+	/*for(i=0; i<PROGRAM_SIZE; i++){
 		addr = MEM_TEXT_BEGIN + (i*4);
 		printf("[0x%x]\t", addr);
 		print_instruction(addr);
-	}
+	} */
 }
 
-void print_instruction(uint32_t addr){
+void print_instruction( uint32_t addr ){
 	//Get the current instruction
     uint32_t ins = mem_read_32( addr );
     
@@ -876,126 +878,126 @@ void print_instruction(uint32_t addr){
             {
                 case 0x00000020:
                     //ADD
-                    printf( "ADD %s, %s, %s\n\n", convert_Reg(rd), convert_Reg(rs), convert_Reg(rt));
+                    printf( "ADD %s, %s, %s", convert_Reg(rd), convert_Reg(rs), convert_Reg(rt));
                     break;
                     
                 case 0x00000021:
                     //ADDU
-                    printf( "ADDU %s, %s, %s\n\n", convert_Reg(rd), convert_Reg(rs), convert_Reg(rt));
+                    printf( "ADDU %s, %s, %s", convert_Reg(rd), convert_Reg(rs), convert_Reg(rt));
                     break;
                     
                 case 0x00000022:
                     //SUB
-                    printf( "SUB %s, %s, %s\n\n", convert_Reg(rd), convert_Reg(rs), convert_Reg(rt));
+                    printf( "SUB %s, %s, %s", convert_Reg(rd), convert_Reg(rs), convert_Reg(rt));
                     break;
                     
                 case 0x00000023:
                     //SUBU
                     //puts( "Subtract Unsigned Function" );
-                    printf( "SUBU %s, %s, %s\n\n", convert_Reg(rd), convert_Reg(rs), convert_Reg(rt));
+                    printf( "SUBU %s, %s, %s", convert_Reg(rd), convert_Reg(rs), convert_Reg(rt));
                     break;
                     
                 case 0x00000018:
                 {
                     //MULT
-                    printf( "MULT %s, %s\n\n", convert_Reg(rs), convert_Reg(rt));
+                    printf( "MULT %s, %s", convert_Reg(rs), convert_Reg(rt));
                     break;
                 }
                     
                 case 0x00000019:
                 {
                     //MULTU
-                    printf( "MULTU %s, %s\n\n", convert_Reg(rs), convert_Reg(rt));
+                    printf( "MULTU %s, %s", convert_Reg(rs), convert_Reg(rt));
                     break;
                 }
                     
                 case 0x0000001A:
                     //DIV
-                    printf( "DIV %s, %s\n\n", convert_Reg(rs), convert_Reg(rt));
+                    printf( "DIV %s, %s", convert_Reg(rs), convert_Reg(rt));
                     break;
                     
                 case 0x0000001B:
                     //DIVU
-                    printf( "DIVU %s, %s\n\n", convert_Reg(rs), convert_Reg(rt));
+                    printf( "DIVU %s, %s", convert_Reg(rs), convert_Reg(rt));
                     break;
                     
                 case 0X00000024:
                     //AND
-                    printf( "AND %s, %s, 0x%x\n\n", convert_Reg(rd), convert_Reg(rs), rt);
+                    printf( "AND %s, %s, 0x%x", convert_Reg(rd), convert_Reg(rs), rt);
                     break;
                     
                 case 0X00000025:
                     //OR
-                    printf( "OR %s, %s, 0x%x\n\n", convert_Reg(rd), convert_Reg(rs), rt);
+                    printf( "OR %s, %s, 0x%x", convert_Reg(rd), convert_Reg(rs), rt);
                     break;
                     
                 case 0X00000026:
                     //XOR
-                    printf( "XOR %s, %s, %s\n\n", convert_Reg(rd), convert_Reg(rs), convert_Reg(rt));
+                    printf( "XOR %s, %s, %s", convert_Reg(rd), convert_Reg(rs), convert_Reg(rt));
                     break;
                     
                 case 0x00000027:
                     //NOR
-                    printf( "NOR %s, %s, %s\n\n", convert_Reg(rd), convert_Reg(rs), convert_Reg(rt));
+                    printf( "NOR %s, %s, %s", convert_Reg(rd), convert_Reg(rs), convert_Reg(rt));
                     break;
                     
                 case 0x0000002A:
                     //SLT
-                    printf( "SLTs %s, %s, 0x%x\n\n", convert_Reg(rd), convert_Reg(rs), rt);
+                    printf( "SLTs %s, %s, 0x%x", convert_Reg(rd), convert_Reg(rs), rt);
                     break;
                     
                 case 0x00000000:
                 {
                     //SLL
-                    printf( "SLL %s, %s, 0x%x\n\n", convert_Reg(rd), convert_Reg(rs), sa);
+                    printf( "SLL %s, %s, 0x%x", convert_Reg(rd), convert_Reg(rs), sa);
                     break;
                 }
                     
                 case 0x00000002:
                 {
                     //SRL
-                    printf( "SRL %s, %s, 0x%x\n\n", convert_Reg(rd), convert_Reg(rs), sa);
+                    printf( "SRL %s, %s, 0x%x", convert_Reg(rd), convert_Reg(rs), sa);
                     break;
                 }
                     
                 case 0x00000003:
                 {
                     //SRA
-                    printf( "SRA %s, %s, 0x%x\n\n", convert_Reg(rd), convert_Reg(rs), sa);
+                    printf( "SRA %s, %s, 0x%x", convert_Reg(rd), convert_Reg(rs), sa);
                     break;
                 }
                 case 0x0000000C:
                     //SYSCALL - System Call, exit the program.
-                    printf( "SYSCALL\n\n");
+                    printf( "SYSCALL");
                     break;
                     
                 case 0x00000008:
                     //JR
-                    printf( "JR %s\n\n", convert_Reg(rs));
+                    printf( "JR %s", convert_Reg(rs));
                     break;
                 case 0x00000009:
                     //JALR
-                    printf( "JALR %s, %s\n\n", convert_Reg(rd), convert_Reg(rs));
+                    printf( "JALR %s, %s", convert_Reg(rd), convert_Reg(rs));
                     break;
                     
                 case 0x00000013:
                     //MTLO
-                    printf( "MTLO %s\n\n", convert_Reg(rs));
+                    printf( "MTLO %s", convert_Reg(rs));
                     break;
                     
                 case 0x0000011:
                     //MTHI
-                    printf( "MTHI %s\n\n", convert_Reg(rs));
+                    printf( "MTHI %s", convert_Reg(rs));
                     break;
                     
                 case 0x0000012:
                     //MFLO
-                    printf( "MFLO %s\n\n", convert_Reg(rd));
+                    printf( "MFLO %s", convert_Reg(rd));
                     break;
                     
                 case 0x0000010:
                     //MFHI
-                    printf( "MFHI %s\n\n", convert_Reg(rd));
+                    printf( "MFHI %s", convert_Reg(rd));
                     break;
             }
             break;
@@ -1005,7 +1007,7 @@ void print_instruction(uint32_t addr){
         {
             //JAL-Jump and Link Instruction
             uint32_t target = ( 0x03FFFFFF & ins  );
-            printf( "JAL %s\n\n", convert_Reg(target));
+            printf( "JAL %s", convert_Reg(target));
             break;
         }
             
@@ -1024,98 +1026,98 @@ void print_instruction(uint32_t addr){
                 case 0x20000000:
                 {
                     //ADDI
-                    printf( "ADDI %s, %s, 0x%x\n\n", convert_Reg(rt), convert_Reg(rs), im);
+                    printf( "ADDI %s, %s, 0x%x", convert_Reg(rt), convert_Reg(rs), im);
                     break;
                 }
                 case 0x24000000:
                 {
                     //ADDIU
-                    printf( "ADDIU %s, %s, 0x%x\n\n", convert_Reg(rt), convert_Reg(rs), im);
+                    printf( "ADDIU %s, %s, 0x%x", convert_Reg(rt), convert_Reg(rs), im);
                     break;
                 }
                 case 0xA000000:
                 {
                     //SB - Store Byte
-                    printf( "SB %s, 0x%x(%s)\n\n", convert_Reg(rt), im, convert_Reg(rs));
+                    printf( "SB %s, 0x%x(%s)", convert_Reg(rt), im, convert_Reg(rs));
                     break;
                 }
                 case 0xAC000000:
                 {
                     //SW - Store Word
-                    printf( "SW %s, 0x%x(%s)\n\n", convert_Reg(rt), im, convert_Reg(rs));
+                    printf( "SW %s, 0x%x(%s)", convert_Reg(rt), im, convert_Reg(rs));
                     break;
                 }
                 case 0xA4000000:
                 {
                     //SH - Store Halfword
-                    printf( "SH %s, 0x%x(%s)\n\n", convert_Reg(rt), im, convert_Reg(rs));
+                    printf( "SH %s, 0x%x(%s)", convert_Reg(rt), im, convert_Reg(rs));
                     break;
                 }
                 case 0x38000000:
                 {
                     //XORI - XORI w/
-                    printf( "XORI %s,%s 0x%x\n\n", convert_Reg(rt),convert_Reg(rs), im);
+                    printf( "XORI %s,%s 0x%x", convert_Reg(rt),convert_Reg(rs), im);
                     break;
                 }
                 case 0x8C000000:
                 {
                     //LW - Load Word
-                    printf( "LW %s, 0x%x(%s)\n\n", convert_Reg(rt), im, convert_Reg(rs));
+                    printf( "LW %s, 0x%x(%s)", convert_Reg(rt), im, convert_Reg(rs));
                     break;
                 }
                 case 0x80000000:
                 {
                     //LB - Load Byte
-                    printf( "LB %s, 0x%x(%s)\n\n", convert_Reg(rt), im, convert_Reg(rs));
+                    printf( "LB %s, 0x%x(%s)", convert_Reg(rt), im, convert_Reg(rs));
                     break;
                 }
                 case 0x84000000:
                 {
                     //LH - Load Halfword
-                    printf( "LH %s, 0x%x(%s)\n\n", convert_Reg(rt), im, convert_Reg(rs));
+                    printf( "LH %s, 0x%x(%s)", convert_Reg(rt), im, convert_Reg(rs));
                     break;
                     
                 }
                 case 0x30000000:
                 {
                     //ANDI
-                    printf( "ANDI %s, %s, 0x%x\n\n", convert_Reg(rt), convert_Reg(rs), im);
+                    printf( "ANDI %s, %s, 0x%x", convert_Reg(rt), convert_Reg(rs), im);
                     break;
                 }
                 case 0x3C000000:
                 {
                     //LUI - Load Upper Immediate
-                    printf( "LUI %s, 0x%x\n\n", convert_Reg(rt), im);
+                    printf( "LUI %s, 0x%x", convert_Reg(rt), im);
                     break;
                 }
                 case 0x10000000:
                 {
                     //BEQ
-                    printf( "BEQ %s, %s, 0x%x\n\n", convert_Reg(rs), convert_Reg(rt), im);
+                    printf( "BEQ %s, %s, 0x%x", convert_Reg(rs), convert_Reg(rt), im);
                     break;
                 }
                 case 0x14000000:
                 {
                     //BNE - Branch on Not Equal
-                    printf( "BNE %s, %s, 0x%x\n\n", convert_Reg(rs), convert_Reg(rt), im);
+                    printf( "BNE %s, %s, 0x%x", convert_Reg(rs), convert_Reg(rt), im);
                     break;
                 }
                 case 0x18000000:
                 {
                     //BLEZ - Branch on Less Than or Equal to Zero
-                    printf( "BLEZ %s, 0x%x\n\n", convert_Reg(rs), im);
+                    printf( "BLEZ %s, 0x%x", convert_Reg(rs), im);
                     break;
                 }
                 case 0x1C000000:
                 {
                     //BGTZ - Branch on Greater Than Zero
-                    printf( "BGTZ %s, 0x%x\n\n", convert_Reg(rs), im);
+                    printf( "BGTZ %s, 0x%x", convert_Reg(rs), im);
                     break;
                 }
                 case 0x34000000:
                 {
                     //ORI
-                    printf( "ORI %s, %s, 0x%x\n\n", convert_Reg(rs), convert_Reg(rt), im);
+                    printf( "ORI %s, %s, 0x%x", convert_Reg(rs), convert_Reg(rt), im);
                     break;
                 }
                 case 0x04000000:
@@ -1126,13 +1128,13 @@ void print_instruction(uint32_t addr){
                         case 0x00000000:
                         {
                             //BLTZ - Branch on Less Than Zero
-                            printf( "BLTZ %s, 0x%x\n\n", convert_Reg(rs), im);
+                            printf( "BLTZ %s, 0x%x", convert_Reg(rs), im);
                             break;
                         }
                         case 0x00000001:
                         {
                             //BGEZ - Branch on Greater Than or Equal to Zero
-                            printf( "BGEZ %s, 0x%x\n\n", convert_Reg(rs), im);
+                            printf( "BGEZ %s, 0x%x", convert_Reg(rs), im);
                             break;
                         }
                     }
@@ -1148,8 +1150,57 @@ void print_instruction(uint32_t addr){
 /************************************************************/
 /* Print the current pipeline                                                                                    */ 
 /************************************************************/
-void show_pipeline(){
-	/*IMPLEMENT THIS*/
+void show_pipeline()
+{
+
+  printf( "\nCurrent PC: %x ", CURRENT_STATE.PC );
+  
+  printf( "\n\nIF/ID.IR %x ", IF_ID.IR );   
+  print_instruction( IF_ID.IR );
+  printf( "\nIF/ID.PC %x", IF_ID.PC );
+  
+  printf( "\n\nID/EX.IR %x ", ID_EX.IR );
+  print_instruction( ID_EX.IR );
+  printf( "\nID/EX.A %x", ID_EX.A );
+  printf( "\nID/EX.B %x", ID_EX.B );
+  printf( "\nID/EX.imm %d", ID_EX.imm );
+  
+  printf( "\n\nEX/MEM.IR %x ", EX_MEM.IR );  
+  print_instruction( EX_MEM.IR );
+  printf( "\nEX/MEM.A %d", EX_MEM.A );
+  printf( "\nEX/MEM.B %d", EX_MEM.B );
+  printf( "\nEX/MEM.ALUOutput %d", EX_MEM.ALUOutput );     
+  
+  printf( "\n\nMEM/WB.IR %x ", MEM_WB.IR );
+  print_instruction( MEM_WB.IR );
+  printf( "\nMEM/WB.A %d", MEM_WB.ALUOutput );
+  printf( "\nMEM/WB.B %d", MEM_WB.LMD );
+  
+  printf( "\n\nDone.\n\n" );
+
+/*
+Current PC: value
+IF/ID.IR value instruction( e.g. add $1, $2, $3)
+IF/ID.PC value //notice that it contains the next PC
+ID/EX.IR value instruction
+ID/EX.A value
+ID/EX.B value
+ID/EX.imm value
+EX/MEM.IR value
+EX/MEM.A value
+EX/MEM.B value
+EX/MEM.ALUOutput value
+MEM/WB.IR value
+MEM/WB.ALUOutput value
+MEM/WB.LMD value
+
+CPU_Pipeline_Reg IF_ID;
+CPU_Pipeline_Reg ID_EX;
+CPU_Pipeline_Reg EX_MEM;
+CPU_Pipeline_Reg MEM_WB;
+
+*/
+
 }
 
 /***************************************************************/
