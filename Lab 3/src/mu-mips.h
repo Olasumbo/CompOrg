@@ -55,7 +55,7 @@ typedef struct CPU_Pipeline_Reg_Struct{
 	uint32_t LMD;
 	uint32_t LO;
 	uint32_t HI;
-	uint32_t type;
+	uint32_t type;  //the type of instruction (ALU or L/S)
 	
 } CPU_Pipeline_Reg;
 

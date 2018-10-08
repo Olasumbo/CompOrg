@@ -360,7 +360,7 @@ void WB()
 	}
 	else if( MEM_WB.type == 4)
 	{
-		NEXT_STATE.REGS[0] = 0XA;
+		//NEXT_STATE.REGS[0] = 0XA;
 		RUN_FLAG = FALSE;
 	}
   	++INSTRUCTION_COUNT;
@@ -409,7 +409,7 @@ void EX()
 		//R-Type
 		case 0x00000000: 
 			{  
-				EX_MEM.type = 0;                              
+				EX_MEM.type = 0;
 
 				switch( func ) 
 				{
@@ -715,7 +715,8 @@ void IF()
 {
 	uint32_t ins = mem_read_32( CURRENT_STATE.PC );
   	IF_ID.IR = ins;
-	NEXT_STATE.PC = CURRENT_STATE.PC + 0x4;  
+	NEXT_STATE.PC = CURRENT_STATE.PC + 0x4;
+    IF_ID.PC = NEXT_STATE.PC;
 }
 
 
@@ -852,11 +853,11 @@ void print_program(){
 
 void print_instruction( uint32_t addr ){
 	//Get the current instruction
-    uint32_t ins = mem_read_32( addr );
-    
+    //uint32_t ins = mem_read_32( addr );
+    uint32_t ins = addr;
     //opcode MASK: 1111 1100 0000 0000 4x0000 = FC0000000
     uint32_t oc = ( 0xFC000000 & ins  );
-    
+
     //Handle each case for instructions
     switch( oc )
     {
@@ -1155,7 +1156,7 @@ void show_pipeline()
 
   printf( "\nCurrent PC: %x ", CURRENT_STATE.PC );
   
-  printf( "\n\nIF/ID.IR %x ", IF_ID.IR );   
+  printf( "\n\nIF/ID.IR %x ", IF_ID.IR );
   print_instruction( IF_ID.IR );
   printf( "\nIF/ID.PC %x", IF_ID.PC );
   
@@ -1167,14 +1168,14 @@ void show_pipeline()
   
   printf( "\n\nEX/MEM.IR %x ", EX_MEM.IR );  
   print_instruction( EX_MEM.IR );
-  printf( "\nEX/MEM.A %d", EX_MEM.A );
-  printf( "\nEX/MEM.B %d", EX_MEM.B );
-  printf( "\nEX/MEM.ALUOutput %d", EX_MEM.ALUOutput );     
+  printf( "\nEX/MEM.A %x", EX_MEM.A );
+  printf( "\nEX/MEM.B %x", EX_MEM.B );
+  printf( "\nEX/MEM.ALUOutput %x", EX_MEM.ALUOutput );
   
   printf( "\n\nMEM/WB.IR %x ", MEM_WB.IR );
   print_instruction( MEM_WB.IR );
-  printf( "\nMEM/WB.A %d", MEM_WB.ALUOutput );
-  printf( "\nMEM/WB.B %d", MEM_WB.LMD );
+  printf( "\nMEM/WB.A %x", MEM_WB.ALUOutput );
+  printf( "\nMEM/WB.B %x", MEM_WB.LMD );
   
   printf( "\n\nDone.\n\n" );
 
