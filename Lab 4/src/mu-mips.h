@@ -59,6 +59,7 @@ typedef struct CPU_Pipeline_Reg_Struct{
 	uint32_t RegisterRt;	
 	uint32_t RegisterRs;	
 	uint32_t RegisterRd;	
+	uint32_t RegWrite;	
 } CPU_Pipeline_Reg;
 
 /***************************************************************/
@@ -68,7 +69,8 @@ typedef struct CPU_Pipeline_Reg_Struct{
 CPU_State CURRENT_STATE, NEXT_STATE;
 int RUN_FLAG;	/* run flag*/
 int ENABLE_FORWARDING = 0;
-int stalled = 0;
+int IF_STALL = 0;
+int ID_STALL = 0;
 uint32_t INSTRUCTION_COUNT;
 uint32_t CYCLE_COUNT;
 uint32_t PROGRAM_SIZE; /*in words*/

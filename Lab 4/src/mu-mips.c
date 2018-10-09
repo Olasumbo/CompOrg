@@ -349,17 +349,18 @@ void handle_pipeline()
 void WB()
 {
 
-	if ( ( MEM_WB.type <= 2 ) && (MEM_WB.RegisterRd != 0) && (MEM_WB.RegisterRd = ID_EX.RegisterRs))
+	MEM_WB.RegWrite = EX_MEM.RegWrite;
+
+	if ( MEM_WB.RegWrite && (MEM_WB.RegisterRd != 0) && (MEM_WB.RegisterRd = ID_EX.RegisterRs))
 	{
-		stalled = 1;
+		IF_STALL = 1;
 	}
-	if ( ( MEM_WB.type <= 2 ) && (MEM_WB.RegisterRd != 0) && (MEM_WB.RegisterRd = ID_EX.RegisterRt))
+	if ( MEM_WB.RegWrite && (MEM_WB.RegisterRd != 0) && (MEM_WB.RegisterRd = ID_EX.RegisterRt))
 	{
-		stalled = 1;
+		IF_STALL = 1;
 	}
 
 	uint32_t rt = ( 0x001F0000 & MEM_WB.IR  ) >> 16;
-	//rd MASK: 4x0000 1111 1000 0000 0000 = 0000F800;
 	uint32_t rd = ( 0x0000F800 & MEM_WB.IR  ) >> 11;
 
 	if( MEM_WB.type == 0 )
@@ -379,12 +380,15 @@ void WB()
 		//NEXT_STATE.REGS[0] = 0XA;
 		RUN_FLAG = FALSE;
 	}
-  	++INSTRUCTION_COUNT;
-
-	if( stalled )
+	
+	if( MEM_WB.RegWrite != 0 )
 	{
-		stalled = 0;
+		EX_MEM.RegWrite = 0;
+		IF_STALL = 0;
+		ID_STALL = 0;
 	}
+
+  	++INSTRUCTION_COUNT;
 }
 
 /************************************************************/
@@ -393,13 +397,15 @@ void WB()
 void MEM()
 {
 
-	if ( ( EX_MEM.type <= 2 ) && (EX_MEM.RegisterRd != 0) && (EX_MEM.RegisterRd = ID_EX.RegisterRs) )
+	if ( EX_MEM.RegWrite && (EX_MEM.RegisterRd != 0) && (EX_MEM.RegisterRd = ID_EX.RegisterRs) )
 	{
-		stalled = 1;
+		IF_STALL = 1;
+		ID_STALL = 1;
 	}
-	if ( ( EX_MEM.type <= 2 ) && (EX_MEM.RegisterRd != 0) && (EX_MEM.RegisterRd = ID_EX.RegisterRt))
+	if ( EX_MEM.RegWrite && (EX_MEM.RegisterRd != 0) && (EX_MEM.RegisterRd = ID_EX.RegisterRt))
 	{
-		stalled = 1;
+		IF_STALL = 1;
+		ID_STALL = 1;
 	}
 
 	MEM_WB.IR = EX_MEM.IR;
@@ -447,6 +453,7 @@ void EX()
 		case 0x00000000: 
 			{  
 				EX_MEM.type = 0;
+				EX_MEM.RegWrite = 1;
 
 				switch( func ) 
 				{
@@ -728,7 +735,7 @@ void EX()
 void ID()
 {
 	//Update EX INstruction     
-        if( !stalled )
+        if( !ID_STALL )
 	{        
 	  	ID_EX.IR = IF_ID.IR;
                                 
@@ -753,9 +760,9 @@ void ID()
 		ID_EX.RegisterRd = rd;
 
 	}
-	else
+	else	
 	{
-		ID_EX.PC = 0;
+		puts( "ID Stall" );
 	}
 
 }
@@ -768,10 +775,14 @@ void IF()
 	uint32_t ins = mem_read_32( CURRENT_STATE.PC );
   	IF_ID.IR = ins;
 	
-	if( !stalled )
+	if( !IF_STALL )
 	{
 		NEXT_STATE.PC = CURRENT_STATE.PC + 0x4;
 	    	IF_ID.PC = NEXT_STATE.PC;
+	}
+	else	
+	{
+		puts( "IF Stall" );
 	}
 }
 
