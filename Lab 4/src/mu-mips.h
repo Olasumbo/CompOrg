@@ -60,6 +60,7 @@ typedef struct CPU_Pipeline_Reg_Struct{
 	uint32_t RegisterRs;	
 	uint32_t RegisterRd;	
 	uint32_t RegWrite;	
+	uint32_t DestReg;
 } CPU_Pipeline_Reg;
 
 /***************************************************************/
