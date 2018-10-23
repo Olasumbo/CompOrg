@@ -374,12 +374,6 @@ void WB()
 	else if( MEM_WB.type == 5)
 	{
 	}
-	
-	if( MEM_WB.RegWrite != 0 )
-	{
-		IF_STALL = 0;
-		ID_STALL = 0;
-	}
 
   	++INSTRUCTION_COUNT;
 }
@@ -396,6 +390,7 @@ void MEM()
 	MEM_WB.RegisterRt = EX_MEM.RegisterRt;
 	MEM_WB.RegisterRd = EX_MEM.RegisterRd;
 	MEM_WB.RegWrite = EX_MEM.RegWrite;
+	MEM_WB.DestReg = EX_MEM.DestReg;
 
 	if(EX_MEM.type <= 1)		//0 reg-reg, 1 reg-imm
 	{
@@ -403,7 +398,7 @@ void MEM()
 	}
 	else if(EX_MEM.type == 2)	//2 is Load
 	{
-		MEM_WB.LMD = mem_read_32(EX_MEM.ALUOutput);
+		MEM_WB.LMD = mem_read_32( EX_MEM.ALUOutput );
 	}
 	else if(EX_MEM.type == 3)	//3 is store
 	{
@@ -505,6 +500,7 @@ void EX()
 					case 0X00000024:
 						//AND                              
 						puts("AND" );
+						printf( ">> A: %x, B: %x\n",  ID_EX.A, ID_EX.B );
 						EX_MEM.ALUOutput = ID_EX.A & ID_EX.B;
 						break; 
 
@@ -604,6 +600,7 @@ void EX()
 			{
 				EX_MEM.DestReg = EX_MEM.RegisterRt;
 				EX_MEM.RegWrite = 1;
+
 				switch( oc )
 				{
 					case 0x20000000:
@@ -771,47 +768,74 @@ void ID()
 	}
 
 
-	if ( EX_MEM.RegWrite && (EX_MEM.DestReg != 0) && (EX_MEM.DestReg == ID_EX.RegisterRs) )
+	if ( MEM_WB.RegWrite && (MEM_WB.DestReg != 0) && (MEM_WB.DestReg == ID_EX.RegisterRs))
+	{
+		puts( "Mem.Dest = Rs" );
+
+		if( ENABLE_FORWARDING == 1 )
+		{
+			ID_EX.A = MEM_WB.LMD;
+			ID_EX.B = NEXT_STATE.REGS[rt];
+		}
+		else
+		{
+			CNT_STALL = 1;
+		}
+	}
+	else if ( MEM_WB.RegWrite && (MEM_WB.DestReg != 0) && (MEM_WB.DestReg == ID_EX.RegisterRt))
+	{
+		puts( "Mem.Dest = Rt" );
+		if( ENABLE_FORWARDING == 1 )
+		{
+			ID_EX.B = MEM_WB.LMD;
+			ID_EX.A = NEXT_STATE.REGS[rs];
+		}
+		else
+		{
+			CNT_STALL = 1;
+		}
+	}
+	else if ( EX_MEM.RegWrite && (EX_MEM.DestReg != 0) && (EX_MEM.DestReg == ID_EX.RegisterRs) )
 	{
 		puts( "\nEX.Dest = Rs" );
 		printf( "\nEX_MEM.DestReg = %x"
 			"\nID_EX.RegisterRs = %x\n\n",
 			EX_MEM.DestReg, ID_EX.RegisterRs );
-		IF_STALL = 1;
-		ID_STALL = 1;
+
 		if( ENABLE_FORWARDING == 1 )
 		{
+			ID_EX.A = EX_MEM.ALUOutput;
+			ID_EX.B = NEXT_STATE.REGS[rt];
+			printf( "Forward to ID_EX.A from ALU = %x", EX_MEM.ALUOutput );
 			CNT_STALL = 0;
 		} else {
 			CNT_STALL = 2;
 		}
 	}
-	if ( EX_MEM.RegWrite && (EX_MEM.DestReg != 0) && (EX_MEM.DestReg == ID_EX.RegisterRt))
+	else if ( EX_MEM.RegWrite && (EX_MEM.DestReg != 0) && (EX_MEM.DestReg == ID_EX.RegisterRt))
 	{
 		puts( "\nEX.Dest = Rt" );
 		printf( "\nEX_MEM.DestReg = %x"
 			"\nID_EX.RegisterRt = %x\n\n",
 			EX_MEM.DestReg, ID_EX.RegisterRt );
-		IF_STALL = 1;
-		ID_STALL = 1;
+
 		if( ENABLE_FORWARDING == 1 )
 		{
+			ID_EX.A = NEXT_STATE.REGS[rs];
+			ID_EX.B = EX_MEM.ALUOutput;
+			printf( "Forward to ID_EX.B from ALU = %x", EX_MEM.ALUOutput );
 			CNT_STALL = 0;
 		} else {
 			CNT_STALL = 2;
 		}
 	}
 
-	if ( MEM_WB.RegWrite && (MEM_WB.DestReg != 0) && (MEM_WB.DestReg == ID_EX.RegisterRs))
+	if( ( ENABLE_FORWARDING == 1 ) && EX_MEM.RegWrite && (EX_MEM.DestReg != 0) && (EX_MEM.DestReg == ID_EX.RegisterRs) && ( EX_MEM.type == 2 ) )
 	{
-		puts( "Mem.Dest = Rs" );
-		IF_STALL = 1;
 		CNT_STALL = 1;
 	}
-	if ( MEM_WB.RegWrite && (MEM_WB.DestReg != 0) && (MEM_WB.DestReg == ID_EX.RegisterRt))
+	else if ( ( ENABLE_FORWARDING == 1 ) && EX_MEM.RegWrite && (EX_MEM.DestReg != 0) && (EX_MEM.DestReg == ID_EX.RegisterRt) && ( EX_MEM.type == 2 ) )
 	{
-		puts( "Mem.Dest = Rt" );
-		IF_STALL = 1;
 		CNT_STALL = 1;
 	}
 
@@ -852,12 +876,15 @@ puts("->ID STALL" );
 		);
 	}*/
 
+	printf("\n\nA: %x; B: %x; Imm: %x;", ID_EX.A, ID_EX.B, ID_EX.imm );
+
 /*EX.Dest = Rt
 	0011 1000 1000 1010 0000 0000 0001 0011 - XORI
 	0000 0000 1010 0101 0101 1000 0010 0100 - AND
 */
 
 }
+
 
 /************************************************************/
 /* instruction fetch (IF) pipeline stage:                                                              */ 
