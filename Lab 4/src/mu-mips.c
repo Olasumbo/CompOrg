@@ -433,6 +433,8 @@ void EX()
 	{
 		EX_MEM.type = 5;
 		EX_MEM.RegWrite = 0;
+		EX_MEM.DestReg = 0;
+		puts( "EX STALLED ONE CYCLE" );
 		return;
 	}
 
@@ -616,6 +618,7 @@ void EX()
 						{	
 							//ADDIU
 							puts( "ADDIU" );
+							printf(">> ID_EX.imm = %x;\n>> ID_EX.A = %x;\n\n",ID_EX.imm,ID_EX.A);
 							EX_MEM.ALUOutput =  ID_EX.imm + ID_EX.A;
 							EX_MEM.type = 1;
 							break;
@@ -737,15 +740,17 @@ void ID()
 {
 	//Update EX INstruction     
   	ID_EX.IR = IF_ID.IR;
+
+	printf( "\nINS: %x\n", ID_EX.IR );
                         
 	//rs MASK: 0000 0011 1110 0000 4x0000 = 03E00000
-	uint32_t rs = ( 0x03E00000 & IF_ID.IR  ) >> 21;
+	uint32_t rs = ( 0x03E00000 & ID_EX.IR  ) >> 21;
 	//rt MASK: 0000 0000 0001 1111 4x0000 = 001F0000;
-	uint32_t rt = ( 0x001F0000 & IF_ID.IR  ) >> 16;  
+	uint32_t rt = ( 0x001F0000 & ID_EX.IR  ) >> 16;  
 	//rt MASK: 0000 0000 0001 1111 4x0000 = 001F0000;
-	uint32_t rd = ( 0x0000F800 & IF_ID.IR  ) >> 11;  
+	uint32_t rd = ( 0x0000F800 & ID_EX.IR  ) >> 11;  
 	//rt MASK: 0000 0000 0001 1111 4x0000 = 001F0000;
-	uint32_t imm = ( 0x0000FFFF & IF_ID.IR  );
+	uint32_t imm = ( 0x0000FFFF & ID_EX.IR  );
   
 	//Load data in ID->EX Buffer
 	ID_EX.A = CURRENT_STATE.REGS[rs];
@@ -758,58 +763,73 @@ void ID()
 	ID_EX.RegisterRt = rt;
 	ID_EX.RegisterRd = rd;
 
+	if( CNT_STALL > 0 )
+	{
+		--CNT_STALL;
+		ID_EX.A = NEXT_STATE.REGS[rs];
+		ID_EX.B = NEXT_STATE.REGS[rt];
+	}
+
+
 	if ( EX_MEM.RegWrite && (EX_MEM.DestReg != 0) && (EX_MEM.DestReg == ID_EX.RegisterRs) )
 	{
-		puts( "EX.Dest = Rs" );
+		puts( "\nEX.Dest = Rs" );
+		printf( "\nEX_MEM.DestReg = %x"
+			"\nID_EX.RegisterRs = %x\n\n",
+			EX_MEM.DestReg, ID_EX.RegisterRs );
 		IF_STALL = 1;
 		ID_STALL = 1;
-
-		ID_EX.IR = 0;
-		ID_EX.A = 0;
-		ID_EX.B = 0;
-		ID_EX.LO = 0;
-		ID_EX.HI = 0;
-		ID_EX.imm = 0;
+		if( ENABLE_FORWARDING == 1 )
+		{
+			CNT_STALL = 0;
+		} else {
+			CNT_STALL = 2;
+		}
 	}
 	if ( EX_MEM.RegWrite && (EX_MEM.DestReg != 0) && (EX_MEM.DestReg == ID_EX.RegisterRt))
 	{
-		puts( "EX.Dest = Rt" );
+		puts( "\nEX.Dest = Rt" );
+		printf( "\nEX_MEM.DestReg = %x"
+			"\nID_EX.RegisterRt = %x\n\n",
+			EX_MEM.DestReg, ID_EX.RegisterRt );
 		IF_STALL = 1;
 		ID_STALL = 1;
-
-		ID_EX.IR = 0;
-		ID_EX.A = 0;
-		ID_EX.B = 0;
-		ID_EX.LO = 0;
-		ID_EX.HI = 0;
-		ID_EX.imm = 0;
+		if( ENABLE_FORWARDING == 1 )
+		{
+			CNT_STALL = 0;
+		} else {
+			CNT_STALL = 2;
+		}
 	}
+
 	if ( MEM_WB.RegWrite && (MEM_WB.DestReg != 0) && (MEM_WB.DestReg == ID_EX.RegisterRs))
 	{
 		puts( "Mem.Dest = Rs" );
 		IF_STALL = 1;
-
-		ID_EX.IR = 0;
-		ID_EX.A = 0;
-		ID_EX.B = 0;
-		ID_EX.LO = 0;
-		ID_EX.HI = 0;
-		ID_EX.imm = 0;
+		CNT_STALL = 1;
 	}
 	if ( MEM_WB.RegWrite && (MEM_WB.DestReg != 0) && (MEM_WB.DestReg == ID_EX.RegisterRt))
 	{
 		puts( "Mem.Dest = Rt" );
 		IF_STALL = 1;
+		CNT_STALL = 1;
+	}
 
+	if( CNT_STALL > 0 )
+	{
 		ID_EX.IR = 0;
 		ID_EX.A = 0;
 		ID_EX.B = 0;
 		ID_EX.LO = 0;
 		ID_EX.HI = 0;
 		ID_EX.imm = 0;
+		ID_EX.RegisterRs = 0;
+		ID_EX.RegisterRt = 0;
+		ID_EX.RegisterRd = 0;
 	}
 
-	if( ID_STALL == 1 )	
+
+	/*if( ID_STALL == 1 )	
 	{
 		printf(	"************************\n"
 			"ID STALL!!!!!\n"
@@ -830,9 +850,9 @@ puts("->ID STALL" );
 			"ID_EX.RegisterRd = %x\n\n",
 			EX_MEM.DestReg, ID_EX.RegisterRs, ID_EX.RegisterRt, ID_EX.RegisterRd
 		);
-	}
+	}*/
 
-/*
+/*EX.Dest = Rt
 	0011 1000 1000 1010 0000 0000 0001 0011 - XORI
 	0000 0000 1010 0101 0101 1000 0010 0100 - AND
 */
@@ -844,17 +864,18 @@ puts("->ID STALL" );
 /************************************************************/
 void IF()
 {
-	
-	if( IF_STALL != 1 )
+	printf( "\nNew IF->COUNT: %d\n", CNT_STALL );
+
+	if( CNT_STALL > 0 )
+	{
+		puts( "->IF Stall" );
+	}
+	else	
 	{
 		NEXT_STATE.PC = CURRENT_STATE.PC + 0x4;
 	    	IF_ID.PC = NEXT_STATE.PC;
 		uint32_t ins = mem_read_32( CURRENT_STATE.PC );
 	  	IF_ID.IR = ins;
-	}
-	else	
-	{
-		puts( "->IF Stall" );
 	}
 }
 
