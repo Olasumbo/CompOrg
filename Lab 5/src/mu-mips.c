@@ -404,6 +404,10 @@ void MEM()
 	{
 		mem_write_32(EX_MEM.ALUOutput, EX_MEM.B);
 	}
+	else if(EX_MEM.type == 6)
+	{
+		MEM_WB.ALUOutput = EX_MEM.ALUOutput;
+	}
 
 }
 
@@ -423,6 +427,14 @@ void EX()
 	uint32_t oc = ( 0xFC000000 & EX_MEM.IR  );
   	uint32_t imm = ID_EX.imm;
 	uint32_t func = (EX_MEM.IR & 0x0000003F);
+	//rs MASK: 0000 0011 1110 0000 4x0000 = 03E00000
+	uint32_t rs = ( 0x03E00000 & EX_MEM.IR  ) >> 21;
+	//rt MASK: 0000 0000 0001 1111 4x0000 = 001F0000;
+	uint32_t rt = ( 0x001F0000 & EX_MEM.IR  ) >> 16;
+	//rd MASK: 4x0000 1111 1000 0000 0000 = 0000F800;
+	uint32_t rd = ( 0x0000F800 & EX_MEM.IR  ) >> 11;
+	//sa MASK: 4X0000 0000 0111 1100 0000 = 000007C0;
+	//uint32_t sa = ( 0x000007C0 & EX_MEM.IR  ) >> 6;
 
 	if( ID_EX.IR == 0 )
 	{
@@ -494,13 +506,19 @@ void EX()
 					case 0x0000001B:
 						//DIVU
 						puts( "Divide Unsigned Function" );
-						EX_MEM.ALUOutput = ID_EX.A / ID_EX.B;
+						if( ID_EX.B == 0 )
+						{ 
+							puts( "ERROR: Trying to divide by 0" ); 
+						}
+						else
+						{
+							EX_MEM.ALUOutput = ID_EX.A / ID_EX.B;
+						}
 						break;
 
 					case 0X00000024:
 						//AND                              
 						puts("AND" );
-						//printf( ">> A: %x, B: %x\n",  ID_EX.A, ID_EX.B );
 						EX_MEM.ALUOutput = ID_EX.A & ID_EX.B;
 						break; 
 
@@ -591,10 +609,64 @@ void EX()
 						EX_MEM.ALUOutput = EX_MEM.HI;
 						//CURRENT_STATE.REGS[rd] = NEXT_STATE.HI;
 						break;
+					case 0x00000008:
+						{
+							//JR -
+							TAKE_BRANCH = 1;
+							CNT_STALL = 1;
+							EX_MEM.DestReg = 0;
+							EX_MEM.RegWrite = 0;
+							EX_MEM.type = 6;
+							uint32_t temp = CURRENT_STATE.REGS[rs];
+							EX_MEM.ALUOutput = temp - CURRENT_STATE.PC;
+							break;
+						}
+					case 0x00000009:
+						{
+							//JR -
+							TAKE_BRANCH = 1;
+							CNT_STALL = 1;
+							EX_MEM.DestReg = 0;
+							EX_MEM.RegWrite = 0;
+							uint32_t temp = CURRENT_STATE.REGS[rs];
+							EX_MEM.ALUOutput = temp - CURRENT_STATE.PC;
+							NEXT_STATE.REGS[rd] = CURRENT_STATE.PC + 0x8;
+							break;
+						}
+
 				}
 				//prevInstruction = func;		
 				break;
 
+			}
+		case 0x08000000:
+			{
+				TAKE_BRANCH = 1;
+				CNT_STALL = 1;
+				EX_MEM.DestReg = 0;
+				EX_MEM.RegWrite = 0;
+				EX_MEM.type = 6;
+
+				uint32_t target = ( 0x03FFFFFF & ID_EX.IR  );
+				uint32_t temp = target << 2;
+				uint32_t bits = ( CURRENT_STATE.PC & 0xF0000000 );
+				EX_MEM.ALUOutput = ( bits | temp ) - CURRENT_STATE.PC;
+				break;
+			}
+
+		case 0x0C000000:
+			{
+				TAKE_BRANCH = 1;
+				CNT_STALL = 1;
+				EX_MEM.DestReg = 0;
+				EX_MEM.RegWrite = 0;
+				EX_MEM.type = 6;
+				uint32_t target = ( 0x03FFFFFF & ID_EX.IR  );
+				uint32_t temp = target << 2;
+				uint32_t bits = ( CURRENT_STATE.PC & 0xF0000000 );
+				EX_MEM.ALUOutput = ( bits | temp ) - CURRENT_STATE.PC;
+//				NEXT_STATE.REGS[sa] = CURRENT_STATE.PC + 0x8;
+				break;
 			}
 		default:
 			{
@@ -615,7 +687,6 @@ void EX()
 						{	
 							//ADDIU
 							puts( "ADDIU" );
-							//printf(">> ID_EX.imm = %x;\n>> ID_EX.A = %x;\n\n",ID_EX.imm,ID_EX.A);
 							EX_MEM.ALUOutput =  ID_EX.imm + ID_EX.A;
 							EX_MEM.type = 1;
 							break;
@@ -721,6 +792,163 @@ void EX()
 							EX_MEM.type = 1;
 							break;
 						}
+					case 0x28000000:
+						//SLTI                      
+						puts("SLTI" );
+						if( ID_EX.A < ID_EX.imm )
+							EX_MEM.ALUOutput = 0x00000001;
+						else
+							EX_MEM.ALUOutput = 0x00000000;
+						break;
+					case 0x10000000:	
+						{             
+							puts("BEQ" );
+							//BEQ
+							CNT_STALL = 1;
+							EX_MEM.DestReg = 0;
+							EX_MEM.RegWrite = 0;
+							EX_MEM.type = 6;		
+
+							uint32_t target = extend_sign( ID_EX.imm );
+							if( ID_EX.A == ID_EX.B )
+							{
+								TAKE_BRANCH = 1;
+								uint32_t temp = target << 2;
+								uint32_t bits = ( CURRENT_STATE.PC & 0xF0000000 );
+								EX_MEM.ALUOutput = ( bits | temp ) - 8;
+								puts("Taking Branch Equal");
+							}
+							else
+							{
+								TAKE_BRANCH = 0;
+							}
+
+							break;
+						}
+					case 0x14000000:	
+						{
+							puts("BNE" );
+							//BNE - Branch on Not Equal
+							CNT_STALL = 1;
+							EX_MEM.DestReg = 0;
+							EX_MEM.RegWrite = 0;
+							EX_MEM.type = 6;		
+
+							uint32_t target = extend_sign( ID_EX.imm );
+							if( ID_EX.A != ID_EX.B )
+							{
+								TAKE_BRANCH = 1;
+								uint32_t temp = target << 2;
+								uint32_t bits = ( CURRENT_STATE.PC & 0xF0000000 );
+								EX_MEM.ALUOutput = ( bits | temp ) - 8;
+							}
+							else
+							{
+								TAKE_BRANCH = 0;
+							}
+
+							break;
+						}
+					case 0x18000000:	
+						{
+							puts("BLEZ" );
+							//BLEZ - Branch on Less Than or Equal to Zero
+							CNT_STALL = 1;
+							EX_MEM.DestReg = 0;
+							EX_MEM.RegWrite = 0;
+							EX_MEM.type = 6;		
+
+							uint32_t target = extend_sign( ID_EX.imm );
+							if( ( ID_EX.A & 0x80000000 ) || ( ID_EX.A == 0 ) )
+							{
+								TAKE_BRANCH = 1;
+								uint32_t temp = target << 2;
+								uint32_t bits = ( CURRENT_STATE.PC & 0xF0000000 );
+								EX_MEM.ALUOutput = ( bits | temp ) - 8;
+							}
+							else
+							{
+								TAKE_BRANCH = 0;
+							}
+							break;
+						}
+					case 0x1C000000:	
+						{
+							puts("BGTZ" );
+							//BGTZ - Branch on Greater Than Zero
+							CNT_STALL = 1;
+							EX_MEM.DestReg = 0;
+							EX_MEM.RegWrite = 0;
+							EX_MEM.type = 6;		
+
+							uint32_t target = extend_sign( ID_EX.imm );
+							if( !( ID_EX.A & 0x80000000 ) || ( ID_EX.A != 0 ) )
+							{
+								TAKE_BRANCH = 1;
+								uint32_t temp = target << 2;
+								uint32_t bits = ( CURRENT_STATE.PC & 0xF0000000 );
+								EX_MEM.ALUOutput = ( bits | temp ) - 8;
+							}
+							else
+							{
+								TAKE_BRANCH = 0;
+							}
+							break;
+						}
+					case 0x04000000:	
+						{
+							//REGIMM
+							switch( rt )
+							{
+								case 0x00000000:
+									{
+										puts("BLTZ" );
+										//BLTZ - Branch on Less Than Zero
+										CNT_STALL = 1;
+										EX_MEM.DestReg = 0;
+										EX_MEM.RegWrite = 0;
+										EX_MEM.type = 6;		
+
+										uint32_t target = extend_sign( ID_EX.imm );
+										if( ID_EX.A & 0x80000000 )
+										{
+											TAKE_BRANCH = 1;
+											uint32_t temp = target << 2;
+											uint32_t bits = ( CURRENT_STATE.PC & 0xF0000000 );
+											EX_MEM.ALUOutput = ( bits | temp )  - 8;
+										}
+										else
+										{
+											TAKE_BRANCH = 0;
+										}
+										break;
+									}
+								case 0x00000001:
+									{
+										puts("BGEZ" );
+										//BGEZ - Branch on Greater Than or Equal to Zero
+										CNT_STALL = 1;
+										EX_MEM.DestReg = 0;
+										EX_MEM.RegWrite = 0;
+										EX_MEM.type = 6;		
+
+										uint32_t target = extend_sign( ID_EX.imm );
+										if( !( ID_EX.A & 0x80000000 ) )
+										{
+											TAKE_BRANCH = 1;
+											uint32_t temp = target << 2;
+											uint32_t bits = ( CURRENT_STATE.PC & 0xF0000000 );
+											EX_MEM.ALUOutput = ( bits | temp ) - 8;
+										}
+										else
+										{
+											TAKE_BRANCH = 0;
+										}
+										break;
+									}
+							}
+							break;
+						}
 					
 				}
 
@@ -738,7 +966,7 @@ void ID()
 	//Update EX INstruction     
   	ID_EX.IR = IF_ID.IR;
 
-//	printf( "\nINS: %x\n", ID_EX.IR );
+	printf( "\nINS: %x\n", ID_EX.IR );
                         
 	//rs MASK: 0000 0011 1110 0000 4x0000 = 03E00000
 	uint32_t rs = ( 0x03E00000 & ID_EX.IR  ) >> 21;
@@ -762,15 +990,14 @@ void ID()
 
 	if( CNT_STALL > 0 )
 	{
-		--CNT_STALL;
-		ID_EX.A = NEXT_STATE.REGS[rs];
-		ID_EX.B = NEXT_STATE.REGS[rt];
+		puts( "->ID Stall" );
+		//ID_EX.A = NEXT_STATE.REGS[rs];
+		//ID_EX.B = NEXT_STATE.REGS[rt];
 	}
 
 
 	if ( MEM_WB.RegWrite && (MEM_WB.DestReg != 0) && (MEM_WB.DestReg == ID_EX.RegisterRs))
 	{
-		puts( "Mem.Dest = Rs" );
 
 		if( ENABLE_FORWARDING == 1 )
 		{
@@ -784,7 +1011,7 @@ void ID()
 	}
 	else if ( MEM_WB.RegWrite && (MEM_WB.DestReg != 0) && (MEM_WB.DestReg == ID_EX.RegisterRt))
 	{
-		//puts( "Mem.Dest = Rt" );
+		puts( "Mem.Dest = Rt" );
 		if( ENABLE_FORWARDING == 1 )
 		{
 			ID_EX.B = MEM_WB.LMD;
@@ -797,11 +1024,6 @@ void ID()
 	}
 	else if ( EX_MEM.RegWrite && (EX_MEM.DestReg != 0) && (EX_MEM.DestReg == ID_EX.RegisterRs) )
 	{
-		/*puts( "\nEX.Dest = Rs" );
-		printf( "\nEX_MEM.DestReg = %x"
-			"\nID_EX.RegisterRs = %x\n\n",
-			EX_MEM.DestReg, ID_EX.RegisterRs );*/
-
 		if( ENABLE_FORWARDING == 1 )
 		{
 			ID_EX.A = EX_MEM.ALUOutput;
@@ -814,10 +1036,6 @@ void ID()
 	}
 	else if ( EX_MEM.RegWrite && (EX_MEM.DestReg != 0) && (EX_MEM.DestReg == ID_EX.RegisterRt))
 	{
-		/*puts( "\nEX.Dest = Rt" );
-		printf( "\nEX_MEM.DestReg = %x"
-			"\nID_EX.RegisterRt = %x\n\n",
-			EX_MEM.DestReg, ID_EX.RegisterRt );*/
 
 		if( ENABLE_FORWARDING == 1 )
 		{
@@ -839,13 +1057,13 @@ void ID()
 		CNT_STALL = 1;
 	}
 
-	if( CNT_STALL > 0 )
+	if( ( CNT_STALL > 0 ) || ( TAKE_BRANCH == 1 ) )
 	{
 		ID_EX.IR = 0;
 		ID_EX.A = 0;
 		ID_EX.B = 0;
 		ID_EX.LO = 0;
-		ID_EX.HI = 0;
+		ID_EX.HI = 0; 
 		ID_EX.imm = 0;
 		ID_EX.RegisterRs = 0;
 		ID_EX.RegisterRt = 0;
@@ -865,13 +1083,25 @@ void IF()
 	if( CNT_STALL > 0 )
 	{
 		puts( "->IF Stall" );
+		--CNT_STALL;
 	}
 	else	
 	{
-		NEXT_STATE.PC = CURRENT_STATE.PC + 0x4;
-	    	IF_ID.PC = NEXT_STATE.PC;
-		uint32_t ins = mem_read_32( CURRENT_STATE.PC );
-	  	IF_ID.IR = ins;
+		if( TAKE_BRANCH == 1 )
+		{
+			NEXT_STATE.PC = CURRENT_STATE.PC + EX_MEM.ALUOutput;
+		    	IF_ID.PC = NEXT_STATE.PC;
+			uint32_t ins = mem_read_32( CURRENT_STATE.PC );
+		  	IF_ID.IR = ins;
+			TAKE_BRANCH = 0;
+		}
+		else
+		{
+			NEXT_STATE.PC = CURRENT_STATE.PC + 0x4;
+		    	IF_ID.PC = NEXT_STATE.PC;
+			uint32_t ins = mem_read_32( CURRENT_STATE.PC );
+		  	IF_ID.IR = ins;
+		}
 	}
 }
 
@@ -987,7 +1217,7 @@ char* convert_Reg(uint32_t reg){
     else if(reg == 31){
         return "$ra";
     }
-    else{
+    else {
         return "error";
     }
 }
@@ -1012,6 +1242,7 @@ void print_instruction( uint32_t addr ){
     //uint32_t ins = addr;
     //opcode MASK: 1111 1100 0000 0000 4x0000 = FC0000000
     uint32_t oc = ( 0xFC000000 & ins  );
+	//printf( "BATNMA: %x\n", oc );
 
     //Handle each case for instructions
     switch( oc )
@@ -1163,10 +1394,16 @@ void print_instruction( uint32_t addr ){
         {
             //JAL-Jump and Link Instruction
             uint32_t target = ( 0x03FFFFFF & ins  );
-            printf( "JAL %s", convert_Reg(target));
+            printf( "JAL %x", target );
             break;
         }
-            
+        case 0x08000000:
+        {
+            //J-Jump
+            uint32_t target = ( 0x03FFFFFF & ins  );
+            printf( "J %x", target);
+            break;
+        }
         default:
         {
             
@@ -1188,10 +1425,10 @@ void print_instruction( uint32_t addr ){
                 case 0x24000000:
                 {
                     //ADDIU
-                    printf( "ADDIU %s, %s, 0x%x", convert_Reg(rt), convert_Reg(rs), im);
+                    printf( "ADDIU %s, %s, 0x%x", convert_Reg(rt), convert_Reg(rs), im );
                     break;
                 }
-                case 0xA000000:
+                case 0xA0000000:
                 {
                     //SB - Store Byte
                     printf( "SB %s, 0x%x(%s)", convert_Reg(rt), im, convert_Reg(rs));
@@ -1213,6 +1450,12 @@ void print_instruction( uint32_t addr ){
                 {
                     //XORI - XORI w/
                     printf( "XORI %s,%s 0x%x", convert_Reg(rt),convert_Reg(rs), im);
+                    break;
+                }
+		case 0x28000000:
+                {
+                    //SLTI 
+                    printf( "SLTI %s,%s 0x%x", convert_Reg(rt),convert_Reg(rs), im);
                     break;
                 }
                 case 0x8C000000:
