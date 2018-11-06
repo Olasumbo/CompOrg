@@ -349,7 +349,7 @@ void handle_pipeline()
 void WB()
 {
 
-	MEM_WB.RegWrite = EX_MEM.RegWrite;
+	//MEM_WB.RegWrite = EX_MEM.RegWrite;
 
 	uint32_t rt = ( 0x001F0000 & MEM_WB.IR  ) >> 16;
 	uint32_t rd = ( 0x0000F800 & MEM_WB.IR  ) >> 11;
@@ -357,10 +357,12 @@ void WB()
 	if( MEM_WB.type == 0 )
 	{
 		NEXT_STATE.REGS[rd] = MEM_WB.ALUOutput;
+		CURRENT_STATE.REGS[rd] = MEM_WB.ALUOutput;
 	}
 	else if( MEM_WB.type == 1)
 	{
 		NEXT_STATE.REGS[rt] = MEM_WB.ALUOutput;
+		CURRENT_STATE.REGS[rt] = MEM_WB.ALUOutput;
 	}
 	else if( MEM_WB.type == 2 )
 	{
@@ -385,6 +387,7 @@ void MEM()
 {
 
 	MEM_WB.IR = EX_MEM.IR;
+	MEM_WB.PC = EX_MEM.PC;
 	MEM_WB.type = EX_MEM.type;
 	MEM_WB.RegisterRs = EX_MEM.RegisterRs;
 	MEM_WB.RegisterRt = EX_MEM.RegisterRt;
@@ -402,7 +405,7 @@ void MEM()
 	}
 	else if(EX_MEM.type == 3)	//3 is store
 	{
-		mem_write_32(EX_MEM.ALUOutput, EX_MEM.B);
+		mem_write_32( EX_MEM.ALUOutput, EX_MEM.B );
 	}
 	else if(EX_MEM.type == 6)
 	{
@@ -419,6 +422,7 @@ void EX()
 
 	//Load INstruction from Buffer
 	EX_MEM.IR = ID_EX.IR;
+	EX_MEM.PC = ID_EX.PC;
 	EX_MEM.RegisterRs = ID_EX.RegisterRs;
 	EX_MEM.RegisterRt = ID_EX.RegisterRt;
 	EX_MEM.RegisterRd = ID_EX.RegisterRd;
@@ -428,11 +432,11 @@ void EX()
   	uint32_t imm = ID_EX.imm;
 	uint32_t func = (EX_MEM.IR & 0x0000003F);
 	//rs MASK: 0000 0011 1110 0000 4x0000 = 03E00000
-	uint32_t rs = ( 0x03E00000 & EX_MEM.IR  ) >> 21;
+	//uint32_t rs = ( 0x03E00000 & EX_MEM.IR  ) >> 21;
 	//rt MASK: 0000 0000 0001 1111 4x0000 = 001F0000;
 	uint32_t rt = ( 0x001F0000 & EX_MEM.IR  ) >> 16;
 	//rd MASK: 4x0000 1111 1000 0000 0000 = 0000F800;
-	uint32_t rd = ( 0x0000F800 & EX_MEM.IR  ) >> 11;
+	//uint32_t rd = ( 0x0000F800 & EX_MEM.IR  ) >> 11;
 	//sa MASK: 4X0000 0000 0111 1100 0000 = 000007C0;
 	//uint32_t sa = ( 0x000007C0 & EX_MEM.IR  ) >> 6;
 
@@ -617,7 +621,7 @@ void EX()
 							EX_MEM.DestReg = 0;
 							EX_MEM.RegWrite = 0;
 							EX_MEM.type = 6;
-							uint32_t temp = CURRENT_STATE.REGS[rs];
+							uint32_t temp = ID_EX.A;
 							EX_MEM.ALUOutput = temp - CURRENT_STATE.PC;
 							break;
 						}
@@ -628,9 +632,9 @@ void EX()
 							CNT_STALL = 1;
 							EX_MEM.DestReg = 0;
 							EX_MEM.RegWrite = 0;
-							uint32_t temp = CURRENT_STATE.REGS[rs];
+							uint32_t temp = ID_EX.A;
 							EX_MEM.ALUOutput = temp - CURRENT_STATE.PC;
-							NEXT_STATE.REGS[rd] = CURRENT_STATE.PC + 0x8;
+							//NEXT_STATE.REGS[rd] = CURRENT_STATE.PC + 0x8;
 							break;
 						}
 
@@ -650,6 +654,12 @@ void EX()
 				uint32_t target = ( 0x03FFFFFF & ID_EX.IR  );
 				uint32_t temp = target << 2;
 				uint32_t bits = ( CURRENT_STATE.PC & 0xF0000000 );
+
+				printf("\n\nJump INS:\n"
+					"Address: %x\n"
+					"CS.PC: %x\n", 
+					(bits | temp), CURRENT_STATE.PC );
+
 				EX_MEM.ALUOutput = ( bits | temp ) - CURRENT_STATE.PC;
 				break;
 			}
@@ -711,13 +721,14 @@ void EX()
 						        EX_MEM.B = ID_EX.B;
 							EX_MEM.type = 3;
 							EX_MEM.RegWrite = 0;
+							printf( "\n%x | STOREWORDDATA-> rt(B): %x; rs(A): %x", ID_EX.IR, ID_EX.B , ID_EX.A );
 							break;
 						}
 					case 0xA4000000:
 						{
 							//SH - Store Halfword  
 							puts("STORE HALFWORD" );
-						      	uint32_t eAddr = ID_EX.A +ID_EX.imm;              
+						      	uint32_t eAddr = ID_EX.A +ID_EX.imm;  
 						      	EX_MEM.ALUOutput = eAddr;
 						      	EX_MEM.B = ID_EX.B;
               						EX_MEM.type = 3;
@@ -751,7 +762,7 @@ void EX()
 						      uint32_t eAddr = ID_EX.A + ID_EX.imm;              
 						      EX_MEM.ALUOutput = eAddr;
 						      EX_MEM.B = ID_EX.B;
-              						EX_MEM.type = 2;
+							EX_MEM.type = 2;
 							break;
 
 						}
@@ -814,8 +825,15 @@ void EX()
 							{
 								TAKE_BRANCH = 1;
 								uint32_t temp = target << 2;
-								uint32_t bits = ( CURRENT_STATE.PC & 0xF0000000 );
-								EX_MEM.ALUOutput = ( bits | temp ) - 8;
+								uint32_t bits = ( ID_EX.PC & 0xF0000000 );
+								EX_MEM.ALUOutput = ( bits | temp );
+
+								printf("\nBEQ INS:\n"
+									"Address: %x\n"
+									"CS.PC: %x\n"
+									"A: %x\n"
+									"B: %x\n", 
+									(bits | temp), ID_EX.PC, ID_EX.A, ID_EX.B );
 								puts("Taking Branch Equal");
 							}
 							else
@@ -839,8 +857,8 @@ void EX()
 							{
 								TAKE_BRANCH = 1;
 								uint32_t temp = target << 2;
-								uint32_t bits = ( CURRENT_STATE.PC & 0xF0000000 );
-								EX_MEM.ALUOutput = ( bits | temp ) - 8;
+								uint32_t bits = ( ID_EX.PC & 0xF0000000 );
+								EX_MEM.ALUOutput = ( bits | temp );
 							}
 							else
 							{
@@ -863,8 +881,8 @@ void EX()
 							{
 								TAKE_BRANCH = 1;
 								uint32_t temp = target << 2;
-								uint32_t bits = ( CURRENT_STATE.PC & 0xF0000000 );
-								EX_MEM.ALUOutput = ( bits | temp ) - 8;
+								uint32_t bits = ( ID_EX.PC & 0xF0000000 );
+								EX_MEM.ALUOutput = ( bits | temp );
 							}
 							else
 							{
@@ -886,8 +904,8 @@ void EX()
 							{
 								TAKE_BRANCH = 1;
 								uint32_t temp = target << 2;
-								uint32_t bits = ( CURRENT_STATE.PC & 0xF0000000 );
-								EX_MEM.ALUOutput = ( bits | temp ) - 8;
+								uint32_t bits = ( ID_EX.PC & 0xF0000000 );
+								EX_MEM.ALUOutput = ( bits | temp );
 							}
 							else
 							{
@@ -914,8 +932,8 @@ void EX()
 										{
 											TAKE_BRANCH = 1;
 											uint32_t temp = target << 2;
-											uint32_t bits = ( CURRENT_STATE.PC & 0xF0000000 );
-											EX_MEM.ALUOutput = ( bits | temp )  - 8;
+											uint32_t bits = ( ID_EX.PC & 0xF0000000 );
+											EX_MEM.ALUOutput = ( bits | temp );
 										}
 										else
 										{
@@ -937,8 +955,8 @@ void EX()
 										{
 											TAKE_BRANCH = 1;
 											uint32_t temp = target << 2;
-											uint32_t bits = ( CURRENT_STATE.PC & 0xF0000000 );
-											EX_MEM.ALUOutput = ( bits | temp ) - 8;
+											uint32_t bits = ( ID_EX.PC & 0xF0000000 );
+											EX_MEM.ALUOutput = ( bits | temp );
 										}
 										else
 										{
@@ -965,6 +983,7 @@ void ID()
 {
 	//Update EX INstruction     
   	ID_EX.IR = IF_ID.IR;
+	ID_EX.PC = IF_ID.PC;
 
 	printf( "\nINS: %x\n", ID_EX.IR );
                         
@@ -974,7 +993,7 @@ void ID()
 	uint32_t rt = ( 0x001F0000 & ID_EX.IR  ) >> 16;  
 	//rt MASK: 0000 0000 0001 1111 4x0000 = 001F0000;
 	uint32_t rd = ( 0x0000F800 & ID_EX.IR  ) >> 11;  
-	//rt MASK: 0000 0000 0001 1111 4x0000 = 001F0000;
+	//rt MASK: 0000 0000 0001 1111 4x0000 = 001F0000;[400008]	STALL COUNT: 0
 	uint32_t imm = ( 0x0000FFFF & ID_EX.IR  );
   
 	//Load data in ID->EX Buffer
@@ -991,10 +1010,9 @@ void ID()
 	if( CNT_STALL > 0 )
 	{
 		puts( "->ID Stall" );
-		//ID_EX.A = NEXT_STATE.REGS[rs];
-		//ID_EX.B = NEXT_STATE.REGS[rt];
+		ID_EX.A = NEXT_STATE.REGS[rs];
+		ID_EX.B = NEXT_STATE.REGS[rt];
 	}
-
 
 	if ( MEM_WB.RegWrite && (MEM_WB.DestReg != 0) && (MEM_WB.DestReg == ID_EX.RegisterRs))
 	{
@@ -1059,6 +1077,7 @@ void ID()
 
 	if( ( CNT_STALL > 0 ) || ( TAKE_BRANCH == 1 ) )
 	{
+		puts("Sending Blank INS");
 		ID_EX.IR = 0;
 		ID_EX.A = 0;
 		ID_EX.B = 0;
@@ -1069,6 +1088,8 @@ void ID()
 		ID_EX.RegisterRt = 0;
 		ID_EX.RegisterRd = 0;
 	}
+
+	printf( "\n\nREADING: rs: %x; rt: %x; imm: %x\n", ID_EX.A, ID_EX.B, ID_EX.imm );
 
 }
 
@@ -1089,8 +1110,9 @@ void IF()
 	{
 		if( TAKE_BRANCH == 1 )
 		{
-			NEXT_STATE.PC = CURRENT_STATE.PC + EX_MEM.ALUOutput;
-		    	IF_ID.PC = NEXT_STATE.PC;
+			puts( "Taking Jump/Branch" );
+			NEXT_STATE.PC = MEM_WB.PC + MEM_WB.ALUOutput;
+		    	IF_ID.PC = CURRENT_STATE.PC;
 			uint32_t ins = mem_read_32( CURRENT_STATE.PC );
 		  	IF_ID.IR = ins;
 			TAKE_BRANCH = 0;
@@ -1098,7 +1120,7 @@ void IF()
 		else
 		{
 			NEXT_STATE.PC = CURRENT_STATE.PC + 0x4;
-		    	IF_ID.PC = NEXT_STATE.PC;
+		    	IF_ID.PC = CURRENT_STATE.PC;
 			uint32_t ins = mem_read_32( CURRENT_STATE.PC );
 		  	IF_ID.IR = ins;
 		}
