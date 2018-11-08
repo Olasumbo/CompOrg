@@ -74,6 +74,7 @@ int IF_STALL = 0;
 int ID_STALL = 0;
 int CNT_STALL = 0;
 int TAKE_BRANCH = 0;
+int TAKE_JUMP = 0;
 uint32_t INSTRUCTION_COUNT;
 uint32_t CYCLE_COUNT;
 uint32_t PROGRAM_SIZE; /*in words*/
