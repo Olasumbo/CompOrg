@@ -72,7 +72,7 @@ int RUN_FLAG;	/* run flag*/
 int ENABLE_FORWARDING = 0 ;
 int IF_STALL = 0;
 int ID_STALL = 0;
-int CNT_STALL = 0;
+int CNT_STALL = 0 ;
 int TAKE_BRANCH = 0;
 int TAKE_JUMP = 0;
 uint32_t INSTRUCTION_COUNT;
@@ -115,4 +115,5 @@ void IF();/*IMPLEMENT THIS*/
 void show_pipeline();/*IMPLEMENT THIS*/
 void initialize();
 void print_program(); /*IMPLEMENT THIS*/
+void print_instruction(uint32_t addr);
 

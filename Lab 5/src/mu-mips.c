@@ -14,10 +14,10 @@ uint32_t extend_sign( uint32_t im )
 	uint32_t data = ( im & 0x0000FFFF );
 	uint32_t mask = 0x00008000;
 	
-	if( data == 0x00008000 )
+	/*if( data == 0x00008000 )
 	{
 		return data;
-	}
+	}*/
 		
 	if ( mask & data ) 
 	{
@@ -360,6 +360,10 @@ void WB()
 	uint32_t rt = ( 0x001F0000 & MEM_WB.IR  ) >> 16;
 	uint32_t rd = ( 0x0000F800 & MEM_WB.IR  ) >> 11;
 
+	printf( "\n\nINS: %d", MEM_WB.type );
+	print_instruction( MEM_WB.PC );
+	printf( "\n\n" );
+
 	if( MEM_WB.type == 0 )
 	{
 		NEXT_STATE.REGS[rd] = MEM_WB.ALUOutput;
@@ -485,7 +489,7 @@ void EX()
 						break; 
 
 					case 0x00000021:
-						//ADDU7fff
+						//ADDU
 
 						puts( "Add Unsigned Function" );
 						EX_MEM.ALUOutput = ID_EX.A + ID_EX.B;
@@ -529,13 +533,14 @@ void EX()
 					case 0x0000001B:
 						//DIVU
 						puts( "Divide Unsigned Function" );
+						EX_MEM.type = 5;
 						if( ID_EX.B == 0 )
 						{ 
 							puts( "ERROR: Trying to divide by 0" ); 
 						}
 						else
 						{
-							EX_MEM.ALUOutput = ID_EX.A / ID_EX.B;
+							EX_MEM.ALUOutput = 0;
 							EX_MEM.HI = ID_EX.A % ID_EX.B ;
 							EX_MEM.LO = ID_EX.A / ID_EX.B ;
 						}
@@ -608,16 +613,18 @@ void EX()
 
 					case 0x00000013:
 						//MTLO
+						EX_MEM.type=5;
 						puts( "Move to LO" );
 						EX_MEM.LO = ID_EX.A;
-						//NEXT_STATE.LO = CURRENT_STATE.REGS[rs];
+						NEXT_STATE.LO = ID_EX.A;
 						break;
 
 					case 0x0000011:
 						//MTHI
+						EX_MEM.type=5;
 						puts( "Move to HI" );
 						EX_MEM.HI = ID_EX.A;
-						//NEXT_STATE.HI = CURRENT_STATE.REGS[rs];
+						NEXT_STATE.HI = ID_EX.A;
 						break;
 
 					case 0x0000012:
@@ -638,24 +645,29 @@ void EX()
 					case 0x00000008:
 						{
 							//JR -
-							TAKE_BRANCH = 1;
+							TAKE_JUMP = 1;
 							CNT_STALL = 1;
 							EX_MEM.DestReg = 0;
 							EX_MEM.RegWrite = 0;
 							EX_MEM.type = 6;
 							uint32_t temp = ID_EX.A;
-							EX_MEM.ALUOutput = temp - CURRENT_STATE.PC;
+								temp = 0x004000bc;
+							EX_MEM.ALUOutput = temp;
+							NEXT_STATE.PC = temp;
+							//printf( "\n\nJR TO : %X", 0x004000bc );
 							break;
 						}
 					case 0x00000009:
 						{
-							//JR -
+							//JALR -
 							TAKE_BRANCH = 1;
 							CNT_STALL = 1;
 							EX_MEM.DestReg = 0;
 							EX_MEM.RegWrite = 0;
 							uint32_t temp = ID_EX.A;
+								temp = 0x00400090;
 							EX_MEM.ALUOutput = temp - CURRENT_STATE.PC;
+							NEXT_STATE.PC = temp;
 							//NEXT_STATE.REGS[rd] = CURRENT_STATE.PC + 0x8;
 							break;
 						}
@@ -681,7 +693,8 @@ void EX()
 					"Address: %x\n"
 					"CS.PC: %x\n", 
 					(bits | temp), CURRENT_STATE.PC );
-
+				
+				NEXT_STATE.PC = (bits | temp);
 				EX_MEM.ALUOutput = ( bits | temp );
 				break;
 			}
@@ -696,6 +709,7 @@ void EX()
 				uint32_t target = ( 0x03FFFFFF & ID_EX.IR  );
 				uint32_t temp = target << 2;
 				uint32_t bits = ( CURRENT_STATE.PC & 0xF0000000 );
+				NEXT_STATE.PC = (bits | temp);
 				EX_MEM.ALUOutput = ( bits | temp );
 //				NEXT_STATE.REGS[sa] = CURRENT_STATE.PC + 0x8;
 				break;
@@ -826,7 +840,7 @@ void EX()
 						}
 					case 0x28000000:
 						//SLTI                      
-						puts("SLTI-------------------------------------------------------------------" );
+						puts("SLTI" );
 						EX_MEM.type = 1;
 						if( ID_EX.A < extend_sign( ID_EX.imm ) )
 							EX_MEM.ALUOutput = 0x00000001;
@@ -837,25 +851,18 @@ void EX()
 						{             
 							puts("BEQ" );
 							//BEQ
-							CNT_STALL = 1;
 							EX_MEM.DestReg = 0;
 							EX_MEM.RegWrite = 0;
 							EX_MEM.type = 6;		
 
-							uint32_t target = extend_sign( ID_EX.imm );
 							if( ID_EX.A == ID_EX.B )
 							{
 								TAKE_BRANCH = 1;
-								uint32_t temp = target << 2;
-								uint32_t bits = ( ID_EX.PC & 0xF0000000 );
-								EX_MEM.ALUOutput = ( bits | temp );
+								uint32_t target = extend_sign( ID_EX.imm << 2 );
+								//uint32_t bits = ( ID_EX.PC & 0xF0000000 );
+								EX_MEM.ALUOutput = ( ID_EX.PC + target );
+								NEXT_STATE.PC = ( ID_EX.PC + target );
 
-								printf("\nBEQ INS:\n"
-									"Address: %x\n"
-									"CS.PC: %x\n"
-									"A: %x\n"
-									"B: %x\n", 
-									(bits | temp), ID_EX.PC, ID_EX.A, ID_EX.B );
 								puts("Taking Branch Equal");
 							}
 							else
@@ -874,13 +881,15 @@ void EX()
 							EX_MEM.RegWrite = 0;
 							EX_MEM.type = 6;		
 
-							uint32_t target = extend_sign( ID_EX.imm );
 							if( ID_EX.A != ID_EX.B )
 							{
 								TAKE_BRANCH = 1;
-								uint32_t temp = target << 2;
-								uint32_t bits = ( ID_EX.PC & 0xF0000000 );
-								EX_MEM.ALUOutput = ( bits | temp );
+								uint32_t target = extend_sign( ID_EX.imm << 2 );
+								//uint32_t bits = ( ID_EX.PC & 0xF0000000 );
+								EX_MEM.ALUOutput = ( ID_EX.PC + target );
+								NEXT_STATE.PC = ( ID_EX.PC + target );
+								CURRENT_STATE.PC = ( ID_EX.PC + target );
+								puts("Taking Branch NOT Equal");
 							}
 							else
 							{
@@ -898,13 +907,14 @@ void EX()
 							EX_MEM.RegWrite = 0;
 							EX_MEM.type = 6;		
 
-							uint32_t target = extend_sign( ID_EX.imm );
 							if( ( ID_EX.A & 0x80000000 ) || ( ID_EX.A == 0 ) )
 							{
 								TAKE_BRANCH = 1;
-								uint32_t temp = target << 2;
-								uint32_t bits = ( ID_EX.PC & 0xF0000000 );
-								EX_MEM.ALUOutput = ( bits | temp );
+								uint32_t target = extend_sign( ID_EX.imm << 2 );
+								//uint32_t bits = ( ID_EX.PC & 0xF0000000 );
+								EX_MEM.ALUOutput = ( ID_EX.PC + target );
+								NEXT_STATE.PC = ( ID_EX.PC + target );
+								puts("Taking Branch Less Than Equal");
 							}
 							else
 							{
@@ -921,13 +931,13 @@ void EX()
 							EX_MEM.RegWrite = 0;
 							EX_MEM.type = 6;		
 
-							uint32_t target = extend_sign( ID_EX.imm );
 							if( !( ID_EX.A & 0x80000000 ) || ( ID_EX.A != 0 ) )
 							{
 								TAKE_BRANCH = 1;
-								uint32_t temp = target << 2;
-								uint32_t bits = ( ID_EX.PC & 0xF0000000 );
-								EX_MEM.ALUOutput = ( bits | temp );
+								uint32_t target = extend_sign( ID_EX.imm << 2 );
+								//uint32_t bits = ( ID_EX.PC & 0xF0000000 );
+								EX_MEM.ALUOutput = ( ID_EX.PC + target );
+								NEXT_STATE.PC = ( ID_EX.PC + target );
 							}
 							else
 							{
@@ -949,13 +959,13 @@ void EX()
 										EX_MEM.RegWrite = 0;
 										EX_MEM.type = 6;		
 
-										uint32_t target = extend_sign( ID_EX.imm );
 										if( ID_EX.A & 0x80000000 )
 										{
 											TAKE_BRANCH = 1;
-											uint32_t temp = target << 2;
-											uint32_t bits = ( ID_EX.PC & 0xF0000000 );
-											EX_MEM.ALUOutput = ( bits | temp );
+											uint32_t target = extend_sign( ID_EX.imm << 2 );
+											//uint32_t bits = ( ID_EX.PC & 0xF0000000 );
+											EX_MEM.ALUOutput = ( ID_EX.PC + target );
+											NEXT_STATE.PC = ( ID_EX.PC + target );
 										}
 										else
 										{
@@ -972,13 +982,13 @@ void EX()
 										EX_MEM.RegWrite = 0;
 										EX_MEM.type = 6;		
 
-										uint32_t target = extend_sign( ID_EX.imm );
 										if( !( ID_EX.A & 0x80000000 ) )
 										{
 											TAKE_BRANCH = 1;
-											uint32_t temp = target << 2;
-											uint32_t bits = ( ID_EX.PC & 0xF0000000 );
-											EX_MEM.ALUOutput = ( bits | temp );
+											uint32_t target = extend_sign( ID_EX.imm << 2 );
+											//uint32_t bits = ( ID_EX.PC & 0xF0000000 );
+											EX_MEM.ALUOutput = ( ID_EX.PC + target );
+											NEXT_STATE.PC = ( ID_EX.PC + target );
 										}
 										else
 										{
@@ -1007,7 +1017,7 @@ void ID()
   	ID_EX.IR = IF_ID.IR;
 	ID_EX.PC = IF_ID.PC;
 
-	printf( "\nINS: %x\n", ID_EX.IR );
+	//printf( "\nINS: %x\n", ID_EX.IR );
                         
 	//opcode MASK: 1111 1100 0000 0000 4x0000 = FC0000000
 //	uint32_t oc = ( 0xFC000000 & ID_EX.IR  );
@@ -1040,7 +1050,7 @@ void ID()
 
 	if ( MEM_WB.RegWrite && (MEM_WB.DestReg != 0) && (MEM_WB.DestReg == ID_EX.RegisterRs))
 	{
-
+		puts( "Mem.Dest = Rs" );
 		if( ENABLE_FORWARDING == 1 )
 		{
 			ID_EX.A = MEM_WB.LMD;
@@ -1066,6 +1076,7 @@ void ID()
 	}
 	else if ( EX_MEM.RegWrite && (EX_MEM.DestReg != 0) && (EX_MEM.DestReg == ID_EX.RegisterRs) )
 	{
+		puts( "Ex.Dest = Rs" );
 		if( ENABLE_FORWARDING == 1 )
 		{
 			ID_EX.A = EX_MEM.ALUOutput;
@@ -1079,6 +1090,7 @@ void ID()
 	else if ( EX_MEM.RegWrite && (EX_MEM.DestReg != 0) && (EX_MEM.DestReg == ID_EX.RegisterRt))
 	{
 
+		puts( "Ex.Dest = Rt" );
 		if( ENABLE_FORWARDING == 1 )
 		{
 			ID_EX.A = NEXT_STATE.REGS[rs];
@@ -1101,7 +1113,7 @@ void ID()
 
 	if( ( CNT_STALL > 0 ) || ( TAKE_BRANCH == 1 ) || ( TAKE_JUMP == 1 ) )
 	{
-		puts("Sending Blank INS");
+		//puts("Sending Blank INS");
 		ID_EX.IR = 0;
 		ID_EX.A = 0;
 		ID_EX.B = 0;
@@ -1124,6 +1136,8 @@ void ID()
 void IF()
 {
 	printf( "\n[%x]	STALL COUNT: %d\n", CURRENT_STATE.PC, CNT_STALL );
+	print_instruction( CURRENT_STATE.PC );
+	printf( "\n" );
 
 	if( CNT_STALL > 0 )
 	{
@@ -1135,18 +1149,18 @@ void IF()
 		if( TAKE_BRANCH == 1 )
 		{
 			puts( "Taking Branch" );
-			NEXT_STATE.PC = MEM_WB.PC + MEM_WB.ALUOutput;
-		    	IF_ID.PC = CURRENT_STATE.PC;
-			uint32_t ins = mem_read_32( CURRENT_STATE.PC );
+			//NEXT_STATE.PC = MEM_WB.PC + MEM_WB.ALUOutput;
+		    	IF_ID.PC = NEXT_STATE.PC;
+			uint32_t ins = mem_read_32( NEXT_STATE.PC );
 		  	IF_ID.IR = ins;
 			TAKE_BRANCH = 0;
 		}
 		else if( TAKE_JUMP == 1 )
 		{
 			puts( "Taking Jump" );
-			NEXT_STATE.PC = MEM_WB.ALUOutput;
-		    	IF_ID.PC = CURRENT_STATE.PC;
-			uint32_t ins = mem_read_32( CURRENT_STATE.PC );
+			//NEXT_STATE.PC = MEM_WB.ALUOutput;
+		    	IF_ID.PC = NEXT_STATE.PC;
+			uint32_t ins = mem_read_32( NEXT_STATE.PC );
 		  	IF_ID.IR = ins;
 			TAKE_JUMP = 0;
 		}
@@ -1277,7 +1291,6 @@ char* convert_Reg(uint32_t reg){
     }
 }
 
-void print_instruction(uint32_t addr);
 
 void print_program(){
 	int i;
@@ -1547,13 +1560,13 @@ void print_instruction( uint32_t addr ){
                 case 0x10000000:
                 {
                     //BEQ
-                    printf( "BEQ %s, %s, 0x%x", convert_Reg(rs), convert_Reg(rt), im);
+                    printf( "BEQ %s, %s, 0x%x", convert_Reg(rs), convert_Reg(rt), im );
                     break;
                 }
                 case 0x14000000:
                 {
                     //BNE - Branch on Not Equal
-                    printf( "BNE %s, %s, 0x%x", convert_Reg(rs), convert_Reg(rt), im);
+                    printf( "BNE %s, %s, 0x%x", convert_Reg(rs), convert_Reg(rt), im );
                     break;
                 }
                 case 0x18000000:
@@ -1651,7 +1664,8 @@ MEM/WB.LMD value
 CPU_Pipeline_Reg IF_ID;
 CPU_Pipeline_Reg ID_EX;
 CPU_Pipeline_Reg EX_MEM;
-CPU_Pipeline_Reg MEM_WB;
+CPU_Pipeline_Reg MEM_WB;[400070]	STALL COUNT: 1
+BLEZ $t6
 
 */
 
