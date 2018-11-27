@@ -449,15 +449,15 @@ void MEM()
 	}
 	else if(EX_MEM.type == 2)	//2 is Load
 	{
-		uint32_t blocknum = ( EX_MEM.ALUOutput & 0x000000F0 ) >> 4;
-		uint32_t wordnum  = ( EX_MEM.ALUOutput & 0x0000000C ) >> 2;
+		uint32_t index = ( EX_MEM.ALUOutput & 0x000000F0 ) >> 4;
+		uint32_t word_offset  = ( EX_MEM.ALUOutput & 0x0000000C ) >> 2;
 		//uint32_t byteoff  = ( MEM_WB.ALUOutput & 0x00000003 );
-		CacheBlock getBlock = L1Cache.blocks[blocknum];
+		CacheBlock getBlock = L1Cache.blocks[index];
 
 		if( EX_MEM.CacheMiss == 0 )
 		{
 			//HIT
-			MEM_WB.LMD = getBlock.words[wordnum];
+			MEM_WB.LMD = getBlock.words[word_offset];
 		}
 		else
 		{
@@ -475,35 +475,29 @@ void MEM()
 	{
 		int index = ( EX_MEM.ALUOutput & 0x000000F0 ) >> 4;
 		int word_offset  = ( EX_MEM.ALUOutput & 0x0000000C ) >> 2;
-		CacheBlock getBlock = L1Cache.blocks[index];
+		CacheBlock * getBlock = &L1Cache.blocks[index];
 
 		if( EX_MEM.CacheMiss == 0 )
 		{
 			//HIT
-			getBlock.words[word_offset] = EX_MEM.B;
-			getBlock.valid = 1;
-			writeBuffer = getBlock;
+			getBlock->words[word_offset] = EX_MEM.B;
+			writeBuffer = *getBlock;
 			MEM_WB.ALUOutput = EX_MEM.ALUOutput;
 		}
 		else
 		{
 			//MISS
-			getBlock.words[0] = mem_read_32( (EX_MEM.ALUOutput & 0xFFFFFFF0) + 0x0 );
-			getBlock.words[1] = mem_read_32( (EX_MEM.ALUOutput & 0xFFFFFFF0) + 0x4 );
-			getBlock.words[2] = mem_read_32( (EX_MEM.ALUOutput & 0xFFFFFFF0) + 0x8 );
-			getBlock.words[3] = mem_read_32( (EX_MEM.ALUOutput & 0xFFFFFFF0) + 0xC );
+			getBlock->words[0] = mem_read_32( (EX_MEM.ALUOutput & 0xFFFFFFF0) + 0x0 );
+			getBlock->words[1] = mem_read_32( (EX_MEM.ALUOutput & 0xFFFFFFF0) + 0x4 );
+			getBlock->words[2] = mem_read_32( (EX_MEM.ALUOutput & 0xFFFFFFF0) + 0x8 );
+			getBlock->words[3] = mem_read_32( (EX_MEM.ALUOutput & 0xFFFFFFF0) + 0xC );
 			
-			getBlock.words[word_offset] = EX_MEM.B;
+			getBlock->words[word_offset] = EX_MEM.B;
 
-			printf( "\nCACHE UPDATE[%d, %d]:\n"
-				"-> [0] = %u\n"
-				"-> [4] = %u\n"
-				"-> [8] = %u\n"
-				"-> [c] = %u\n",
-				index, word_offset,
-				getBlock.words[0],getBlock.words[1],getBlock.words[2],getBlock.words[3] );
-			getBlock.valid = 1;
-			writeBuffer = getBlock;
+			getBlock->tag = ( EX_MEM.ALUOutput & 0xFFFFFF00 );
+			getBlock->valid = 1;
+
+			writeBuffer = *getBlock;
 			MEM_WB.ALUOutput = EX_MEM.ALUOutput;
 		}
 		
@@ -867,6 +861,7 @@ void EX()
 							if( ( getBlock.tag == tag ) && ( getBlock.valid == 1 ) )
 							{
 								++cache_hits;
+								EX_MEM.CacheMiss = 0;
 							}
 							else
 							{
@@ -892,6 +887,7 @@ void EX()
 							if( ( getBlock.tag == tag ) && ( getBlock.valid == 1 ) )
 							{
 								++cache_hits;
+								EX_MEM.CacheMiss = 0;
 							}
 							else
 							{
@@ -915,6 +911,7 @@ void EX()
 							if( ( getBlock.tag == tag ) && ( getBlock.valid == 1 ) )
 							{
 								++cache_hits;
+								EX_MEM.CacheMiss = 0;
 							}
 							else
 							{
@@ -939,6 +936,7 @@ void EX()
 							if( ( getBlock.tag == tag ) && ( getBlock.valid == 1 ) )
 							{
 								++cache_hits;
+								EX_MEM.CacheMiss = 0;
 							}
 							else
 							{
@@ -964,6 +962,7 @@ void EX()
 							if( ( getBlock.tag == tag ) && ( getBlock.valid == 1 ) )
 							{
 								++cache_hits;
+								EX_MEM.CacheMiss = 0;
 							}
 							else
 							{
