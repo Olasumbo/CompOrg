@@ -33,4 +33,4 @@ uint32_t cache_hits;   //need to initialize to 0 at the beginning of simulation 
 /* CACHE OBJECT                                                */
 /***************************************************************/
 Cache L1Cache; //need to use this in the simulator
-
+CacheBlock writeBuffer;

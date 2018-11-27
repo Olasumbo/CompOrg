@@ -8,6 +8,9 @@
 #include "mu-cache.h"
 //test
 
+
+char* convert_Reg(uint32_t reg);
+
 /***************************************************************/
 /* Extend Sign Function from 16-bits to 32-bits */
 /***************************************************************/
@@ -388,6 +391,20 @@ void WB()
 		CURRENT_STATE.REGS[rt] = MEM_WB.LMD;
 		//printf( "\nLoaded %x\n", MEM_WB.LMD );
 	}
+	else if( MEM_WB.type == 3 )
+	{
+			printf( "\nWB UPDATE[%x]:\n"
+				"-> [0] = %u\n"
+				"-> [4] = %u\n"
+				"-> [8] = %u\n"
+				"-> [c] = %u\n", ( (MEM_WB.ALUOutput) ),
+				writeBuffer.words[0],writeBuffer.words[1],writeBuffer.words[2],writeBuffer.words[3]);
+
+		mem_write_32( (MEM_WB.ALUOutput & 0xFFFFFFF0) + 0x0, writeBuffer.words[0] );
+		mem_write_32( (MEM_WB.ALUOutput & 0xFFFFFFF0) + 0x4, writeBuffer.words[1] );
+		mem_write_32( (MEM_WB.ALUOutput & 0xFFFFFFF0) + 0x8, writeBuffer.words[2] );
+		mem_write_32( (MEM_WB.ALUOutput & 0xFFFFFFF0) + 0xC, writeBuffer.words[3] );
+	}
 	else if( MEM_WB.type == 4)
 	{
 		//NEXT_STATE.REGS[0] = 0XA;
@@ -424,14 +441,17 @@ void MEM()
 	MEM_WB.LO = EX_MEM.LO;
 	MEM_WB.HI = EX_MEM.HI;
 
+	printf( "\nHITS: %d; MISSES: %d\n", cache_hits, cache_misses );
+
 	if(EX_MEM.type <= 1)		//0 reg-reg, 1 reg-imm
 	{
 		MEM_WB.ALUOutput = EX_MEM.ALUOutput;
 	}
 	else if(EX_MEM.type == 2)	//2 is Load
 	{
-		uint32_t blocknum = ( MEM_WB.ALUOutput & 0x000000F0 ) >> 4;
-		uint32_t wordnum  = ( MEM_WB.ALUOutput & 0x0000000C ) >> 2;
+		uint32_t blocknum = ( EX_MEM.ALUOutput & 0x000000F0 ) >> 4;
+		uint32_t wordnum  = ( EX_MEM.ALUOutput & 0x0000000C ) >> 2;
+		//uint32_t byteoff  = ( MEM_WB.ALUOutput & 0x00000003 );
 		CacheBlock getBlock = L1Cache.blocks[blocknum];
 
 		if( EX_MEM.CacheMiss == 0 )
@@ -443,17 +463,50 @@ void MEM()
 		{
 			//MISS
 			MEM_WB.LMD = mem_read_32( EX_MEM.ALUOutput );
-			getBlock.words[0] = mem_read_32( MEM_WB.ALUOutput & 0xFFFFFFF0 );
-			getBlock.words[1] = mem_read_32( MEM_WB.ALUOutput & 0xFFFFFFF4 );
-			getBlock.words[2] = mem_read_32( MEM_WB.ALUOutput & 0xFFFFFFF8 );
-			getBlock.words[3] = mem_read_32( MEM_WB.ALUOutput & 0xFFFFFFFC );
+			getBlock.words[0] = mem_read_32( (EX_MEM.ALUOutput & 0xFFFFFFF0) + 0x0 );
+			getBlock.words[1] = mem_read_32( (EX_MEM.ALUOutput & 0xFFFFFFF0) + 0x4 );
+			getBlock.words[2] = mem_read_32( (EX_MEM.ALUOutput & 0xFFFFFFF0) + 0x8 );
+			getBlock.words[3] = mem_read_32( (EX_MEM.ALUOutput & 0xFFFFFFF0) + 0xC );
 
 			MEM_STALL = 100;
 		}
 	}
 	else if(EX_MEM.type == 3)	//3 is store
 	{
-		mem_write_32( EX_MEM.ALUOutput, EX_MEM.B );
+		int index = ( EX_MEM.ALUOutput & 0x000000F0 ) >> 4;
+		int word_offset  = ( EX_MEM.ALUOutput & 0x0000000C ) >> 2;
+		CacheBlock getBlock = L1Cache.blocks[index];
+
+		if( EX_MEM.CacheMiss == 0 )
+		{
+			//HIT
+			getBlock.words[word_offset] = EX_MEM.B;
+			getBlock.valid = 1;
+			writeBuffer = getBlock;
+			MEM_WB.ALUOutput = EX_MEM.ALUOutput;
+		}
+		else
+		{
+			//MISS
+			getBlock.words[0] = mem_read_32( (EX_MEM.ALUOutput & 0xFFFFFFF0) + 0x0 );
+			getBlock.words[1] = mem_read_32( (EX_MEM.ALUOutput & 0xFFFFFFF0) + 0x4 );
+			getBlock.words[2] = mem_read_32( (EX_MEM.ALUOutput & 0xFFFFFFF0) + 0x8 );
+			getBlock.words[3] = mem_read_32( (EX_MEM.ALUOutput & 0xFFFFFFF0) + 0xC );
+			
+			getBlock.words[word_offset] = EX_MEM.B;
+
+			printf( "\nCACHE UPDATE[%d, %d]:\n"
+				"-> [0] = %u\n"
+				"-> [4] = %u\n"
+				"-> [8] = %u\n"
+				"-> [c] = %u\n",
+				index, word_offset,
+				getBlock.words[0],getBlock.words[1],getBlock.words[2],getBlock.words[3] );
+			getBlock.valid = 1;
+			writeBuffer = getBlock;
+			MEM_WB.ALUOutput = EX_MEM.ALUOutput;
+		}
+		
 	}
 	else if(EX_MEM.type == 6)
 	{
@@ -485,7 +538,7 @@ void EX()
   	//uint32_t imm = ID_EX.imm;
 	uint32_t func = (EX_MEM.IR & 0x0000003F);
 	//rs MASK: 0000 0011 1110 0000 4x0000 = 03E00000
-	//uint32_t rs = ( 0x03E00000 & EX_MEM.IR  ) >> 21;
+	uint32_t rs = ( 0x03E00000 & EX_MEM.IR  ) >> 21;
 	//rt MASK: 0000 0000 0001 1111 4x0000 = 001F0000;
 	uint32_t rt = ( 0x001F0000 & EX_MEM.IR  ) >> 16;
 	//rd MASK: 4x0000 1111 1000 0000 0000 = 0000F800;
@@ -767,6 +820,7 @@ void EX()
 							puts( "ADDIU" );
 							EX_MEM.ALUOutput =  ID_EX.imm + ID_EX.A;
 							EX_MEM.type = 1;
+							printf("\nEX->ADDIU: %s %s %u  \n", convert_Reg(rs), convert_Reg(rt), ID_EX.imm);
 							break;
 						}		
 					case 0xA0000000:
@@ -779,6 +833,20 @@ void EX()
 							EX_MEM.type = 3;
 							EX_MEM.RegWrite = 0;	
 							printf( "\n%x | STOREBYTEDATA-> rt(B): %x; rs(A): %x", ID_EX.IR, ID_EX.B , ID_EX.A );						      
+
+							uint32_t blocknum = ( eAddr & 0x000000F0 ) >> 4;
+							uint32_t tag 	  = ( eAddr & 0xFFFFFF00 );
+
+							CacheBlock getBlock = L1Cache.blocks[blocknum];
+							if( ( getBlock.tag == tag ) && ( getBlock.valid == 1 ) )
+							{
+								++cache_hits;
+							}
+							else
+							{
+								++cache_misses;
+								EX_MEM.CacheMiss = 1;
+							}
 							break;
 						}
 					case 0xAC000000:
@@ -791,6 +859,20 @@ void EX()
 							EX_MEM.type = 3;
 							EX_MEM.RegWrite = 0;
 							printf( "\n%x | STOREWORDDATA-> rt(B): %x; rs(A): %x", ID_EX.IR, ID_EX.B , ID_EX.A );
+
+							uint32_t blocknum = ( eAddr & 0x000000F0 ) >> 4;
+							uint32_t tag 	  = ( eAddr & 0xFFFFFF00 );
+
+							CacheBlock getBlock = L1Cache.blocks[blocknum];
+							if( ( getBlock.tag == tag ) && ( getBlock.valid == 1 ) )
+							{
+								++cache_hits;
+							}
+							else
+							{
+								++cache_misses;
+								EX_MEM.CacheMiss = 1;
+							}
 							break;
 						}
 					case 0xA4000000:
@@ -802,6 +884,20 @@ void EX()
 						        EX_MEM.B = ID_EX.B;
               						EX_MEM.type = 3;
 							EX_MEM.RegWrite = 0;
+
+							uint32_t blocknum = ( eAddr & 0x000000F0 ) >> 4;
+							uint32_t tag 	  = ( eAddr & 0xFFFFFF00 );
+
+							CacheBlock getBlock = L1Cache.blocks[blocknum];
+							if( ( getBlock.tag == tag ) && ( getBlock.valid == 1 ) )
+							{
+								++cache_hits;
+							}
+							else
+							{
+								++cache_misses;
+								EX_MEM.CacheMiss = 1;
+							}
 							break;
 						}
 					case 0x8C000000:
@@ -1226,7 +1322,7 @@ void IF()
 		return;
 	}
 
-	printf( "\n[%x]	STALL COUNT: %d\n", CURRENT_STATE.PC, CNT_STALL );
+	printf( "\n[%x]	STALL COUNT: %d;\n", CURRENT_STATE.PC, CNT_STALL );
 	print_instruction( CURRENT_STATE.PC );
 	printf( "\n" );
 
@@ -1245,6 +1341,7 @@ void IF()
 			uint32_t ins = mem_read_32( NEXT_STATE.PC );
 		  	IF_ID.IR = ins;
 			TAKE_BRANCH = 0;
+			NEXT_STATE.PC = CURRENT_STATE.PC + 0x4;
 		}
 		else if( TAKE_JUMP == 1 )
 		{
@@ -1259,10 +1356,11 @@ void IF()
 		{
 			NEXT_STATE.PC = CURRENT_STATE.PC + 0x4;
 		    	IF_ID.PC = CURRENT_STATE.PC;
-			uint32_t ins = mem_read_32( CURRENT_STATE.PC );
+			uint32_t ins = mem_read_32(  CURRENT_STATE.PC );
 		  	IF_ID.IR = ins;
 		}
 	}
+	printf( "TAKE_BRANCH: %d;\n", TAKE_BRANCH );
 }
 
 
